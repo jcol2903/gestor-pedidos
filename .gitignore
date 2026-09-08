@@ -1,0 +1,25 @@
+# Archivos de dependencias de Node.js
+**/node_modules/
+**/.pnp
+**/.pnp.js
+
+# Entornos y compilaciones de React / Electron
+**/dist/
+**/build/
+**/out/
+
+# Builds de Expo / React Native
+**/.expo/
+**/web-build/
+
+# Base de datos local (evita subir datos reales/de prueba a GitHub)
+**/*.db
+**/*.db-journal
+
+# Archivos del sistema y editor
+.DS_Store
+*.pem
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
