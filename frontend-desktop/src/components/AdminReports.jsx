@@ -61,7 +61,11 @@ export const AdminReports = () => {
 
   return (
     <div style={{ padding: '2rem' }}>
-      <h2>📊 Reportes - {activeBusiness.name}</h2>
+      <h2 style={{  
+          color: '#212529', // <--- Cambiado para que resalte
+          fontWeight: 'bold',
+          fontSize: '1.5rem'
+        }}>📊 Reportes - {activeBusiness.name}</h2>
       
       <div style={styles.metricsContainer}>
         <div style={styles.metricCard}>

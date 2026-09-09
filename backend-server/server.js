@@ -1,162 +1,143 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
+const PORT = 3000;
+
 app.use(cors());
 app.use(express.json());
 
-const JWT_SECRET = 'secreto_local_kirala_2026';
-const db = new sqlite3.Database('./kirala_gestor.db');
+// Crear carpeta 'uploads' si no existe
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
 
-// Inicializar tablas y datos por defecto
-db.serialize(async () => {
-  // Tabla Usuarios
-  db.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL
-    )
-  `);
+// Servir la carpeta de imágenes estáticas para que el frontend las muestre
+app.use('/uploads', express.static(uploadsDir));
 
-  // Tabla Negocios
-  db.run(`
-    CREATE TABLE IF NOT EXISTS businesses (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL
-    )
-  `);
+// Configuración de Multer para almacenar imágenes con su extensión
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, 'uploads/'),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage });
 
-  // Tabla Pedidos
+// Conexión a Base de Datos
+const dbPath = path.resolve(__dirname, 'kirala_gestor.db');
+console.log('Conectando a la base de datos en:', dbPath); // Esto te mostrará la ruta exacta en consola
+
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) console.error('Error al conectar a SQLite:', err.message);
+  else console.log('Conectado a la base de datos SQLite.');
+});
+
+// Inicialización de la Tabla y Migración de Nuevas Columnas
+db.serialize(() => {
   db.run(`
     CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      business_id INTEGER NOT NULL,
-      customer_name TEXT NOT NULL,
+      business_id INTEGER,
+      consecutive INTEGER,
+      customer_name TEXT,
       phone TEXT,
+      total REAL,
+      deposit REAL DEFAULT 0,
       delivery_date TEXT,
-      total REAL NOT NULL,
-      status TEXT DEFAULT 'Pendiente',
-      FOREIGN KEY (business_id) REFERENCES businesses (id)
+      status TEXT,
+      order_type TEXT,
+      flavor TEXT,
+      filling TEXT,
+      topper_text TEXT,
+      height_cm REAL,
+      delivery_type TEXT,
+      address TEXT,
+      neighborhood TEXT,
+      notes TEXT,
+      image_url TEXT
     )
   `);
 
-  // Insertar negocios base si no existen
-  db.get('SELECT COUNT(*) AS count FROM businesses', (err, row) => {
-    if (row && row.count === 0) {
-      db.run(`INSERT INTO businesses (id, name) VALUES (1, 'Kirala Tortas'), (2, 'Kirala Amigurumis')`);
-    }
-  });
+  // Asegurar la existencia de nuevas columnas si la tabla ya existía
+  const columns = [
+    'consecutive INTEGER',
+    'deposit REAL DEFAULT 0',
+    'order_type TEXT',
+    'flavor TEXT',
+    'filling TEXT',
+    'topper_text TEXT',
+    'height_cm REAL',
+    'delivery_type TEXT',
+    'address TEXT',
+    'neighborhood TEXT',
+    'notes TEXT',
+    'image_url TEXT'
+  ];
 
-  // Insertar usuarios iniciales
-  db.get('SELECT COUNT(*) AS count FROM users', async (err, row) => {
-    if (row && row.count === 0) {
-      const passAdmin = await bcrypt.hash('admin123', 10);
-      const passGestion = await bcrypt.hash('kirala2026', 10);
-
-      db.run(`INSERT INTO users (username, password, role) VALUES ('admin', ?, 'admin')`, [passAdmin]);
-      db.run(`INSERT INTO users (username, password, role) VALUES ('gestion', ?, 'gestion')`, [passGestion]);
-      console.log('Usuarios base creados: admin / gestion');
-    }
-  });
-
-  db.run(`ALTER TABLE orders ADD COLUMN order_type TEXT`, (err) => {
-    // Si la columna ya existe, SQLite simplemente ignorará este comando
-  });
-
-  db.run(`ALTER TABLE orders ADD COLUMN consecutive INTEGER`, (err) => {
-    // Rellenar consecutivos para registros antiguos que estén en NULL
-    db.all(`SELECT id, business_id FROM orders ORDER BY id ASC`, [], (err, rows) => {
-      if (rows && rows.length > 0) {
-        const counters = {};
-        rows.forEach((row) => {
-          counters[row.business_id] = (counters[row.business_id] || 0) + 1;
-          db.run(`UPDATE orders SET consecutive = ? WHERE id = ? AND consecutive IS NULL`, [counters[row.business_id], row.id]);
-        });
-      }
-    });
-  });
-
-  // 1. Agregar columna de abono 'deposit' si no existe
-  db.run(`ALTER TABLE orders ADD COLUMN deposit REAL DEFAULT 0`);
-
-  // 2. Modificar endpoint POST /api/orders
-  app.post('/api/orders', (req, res) => {
-    const { business_id, customer_name, phone, deposit, delivery_date, total, status, order_type } = req.body;
-
-    const maxQuery = `SELECT MAX(consecutive) as max_consecutive FROM orders WHERE business_id = ?`;
-
-    db.get(maxQuery, [business_id], (err, row) => {
-      if (err) return res.status(500).json({ error: err.message });
-
-      const nextConsecutive = (row && row.max_consecutive ? row.max_consecutive : 0) + 1;
-
-      const insertQuery = `
-        INSERT INTO orders (business_id, consecutive, customer_name, phone, deposit, delivery_date, total, status, order_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-
-      db.run(
-        insertQuery,
-        [business_id, nextConsecutive, customer_name, phone, deposit || 0, delivery_date, total, status || 'Pendiente', order_type || null],
-        function (err) {
-          if (err) return res.status(500).json({ error: err.message });
-          res.json({ id: this.lastID, consecutive: nextConsecutive, message: 'Pedido registrado con éxito' });
-        }
-      );
-    });
+  columns.forEach((col) => {
+    db.run(`ALTER TABLE orders ADD COLUMN ${col}`, () => {});
   });
 });
 
-// Endpoint de Inicio de Sesión
+// POST: Autenticación de usuarios
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
 
-  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, user) => {
-    if (err || !user) {
-      return res.status(400).json({ error: 'Usuario no encontrado' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: 'Contraseña incorrecta' });
-    }
-
-    const token = jwt.sign(
-      { id: user.id, username: user.username, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '12h' }
-    );
-
-    res.json({
-      token,
-      user: { id: user.id, username: user.username, role: user.role }
+  // Validación básica de credenciales
+  if (username === 'admin' && password === 'admin123') {
+    return res.json({
+      success: true,
+      user: {
+        username: 'admin',
+        role: 'admin',
+        name: 'Administrador'
+      }
     });
-  });
+  } else if (username === 'gestion' && password === 'gestion123') {
+    return res.json({
+      success: true,
+      user: {
+        username: 'gestion',
+        role: 'gestion',
+        name: 'Usuario Gestión'
+      }
+    });
+  }
+
+  // Si las credenciales no coinciden
+  return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
 });
 
-// --- CRUD DE PEDIDOS ---
-
-// 1. OBTENER PEDIDOS POR NEGOCIO (Ruta que te faltaba)
-app.get('/api/orders/:businessId', (req, res) => {
-  const { businessId } = req.params;
-  const query = 'SELECT * FROM orders WHERE business_id = ? ORDER BY id DESC';
-
-  db.all(query, [businessId], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+// GET: Obtener pedidos por Negocio
+app.get('/api/orders/:business_id', (req, res) => {
+  const { business_id } = req.params;
+  db.all(
+    'SELECT * FROM orders WHERE business_id = ? ORDER BY delivery_date ASC',
+    [business_id],
+    (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    }
+  );
 });
 
-// 2. CREAR UN PEDIDO
-app.post('/api/orders', (req, res) => {
-  const { business_id, customer_name, phone, delivery_date, total, status, order_type } = req.body;
+// POST: Crear un nuevo pedido (Soporta imagen adjunta)
+app.post('/api/orders', upload.single('image'), (req, res) => {
+  const {
+    business_id, customer_name, phone, total, deposit, delivery_date, status,
+    order_type, flavor, filling, topper_text, height_cm, delivery_type,
+    address, neighborhood, notes
+  } = req.body;
 
-  // Obtener el consecutivo actual más alto para ESTE negocio específico
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
   const maxQuery = `SELECT MAX(consecutive) as max_consecutive FROM orders WHERE business_id = ?`;
 
   db.get(maxQuery, [business_id], (err, row) => {
@@ -165,13 +146,19 @@ app.post('/api/orders', (req, res) => {
     const nextConsecutive = (row && row.max_consecutive ? row.max_consecutive : 0) + 1;
 
     const insertQuery = `
-      INSERT INTO orders (business_id, consecutive, customer_name, phone, delivery_date, total, status, order_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (
+        business_id, consecutive, customer_name, phone, total, deposit, delivery_date, status,
+        order_type, flavor, filling, topper_text, height_cm, delivery_type, address, neighborhood, notes, image_url
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.run(
       insertQuery,
-      [business_id, nextConsecutive, customer_name, phone, delivery_date, total, status || 'Pendiente', order_type || null],
+      [
+        business_id, nextConsecutive, customer_name, phone, total, deposit || 0, delivery_date, status || 'Pendiente',
+        order_type || null, flavor || null, filling || null, topper_text || null, height_cm || null,
+        delivery_type || 'Recogida', address || null, neighborhood || null, notes || null, imageUrl
+      ],
       function (err) {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ id: this.lastID, consecutive: nextConsecutive, message: 'Pedido registrado con éxito' });
@@ -180,53 +167,56 @@ app.post('/api/orders', (req, res) => {
   });
 });
 
-// 3. EDITAR UN PEDIDO EXISTENTE
-app.put('/api/orders/:id', (req, res) => {
+// PUT: Modificar pedido existente
+app.put('/api/orders/:id', upload.single('image'), (req, res) => {
   const { id } = req.params;
-  const { customer_name, phone, deposit, delivery_date, total, status, order_type } = req.body;
+  const {
+    customer_name, phone, total, deposit, delivery_date, status,
+    order_type, flavor, filling, topper_text, height_cm, delivery_type,
+    address, neighborhood, notes, existing_image_url
+  } = req.body;
 
-  const query = `
-    UPDATE orders 
-    SET customer_name = ?, phone = ?, deposit = ?, delivery_date = ?, total = ?, status = ?, order_type = ?
+  const imageUrl = req.file ? `/uploads/${req.file.filename}` : existing_image_url || null;
+
+  const updateQuery = `
+    UPDATE orders SET 
+      customer_name = ?, phone = ?, total = ?, deposit = ?, delivery_date = ?, status = ?,
+      order_type = ?, flavor = ?, filling = ?, topper_text = ?, height_cm = ?, delivery_type = ?,
+      address = ?, neighborhood = ?, notes = ?, image_url = ?
     WHERE id = ?
   `;
 
-  db.run(query, [customer_name, phone, deposit || 0, delivery_date, total, status, order_type, id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Pedido actualizado correctamente' });
-  });
+  db.run(
+    updateQuery,
+    [
+      customer_name, phone, total, deposit || 0, delivery_date, status,
+      order_type || null, flavor || null, filling || null, topper_text || null, height_cm || null,
+      delivery_type || 'Recogida', address || null, neighborhood || null, notes || null, imageUrl, id
+    ],
+    function (err) {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ message: 'Pedido actualizado correctamente' });
+    }
+  );
 });
 
-// 4. ELIMINAR UN PEDIDO
+// DELETE: Eliminar pedido
 app.delete('/api/orders/:id', (req, res) => {
   const { id } = req.params;
-  db.run(`DELETE FROM orders WHERE id = ?`, [id], function(err) {
+  db.run('DELETE FROM orders WHERE id = ?', [id], function (err) {
     if (err) return res.status(500).json({ error: err.message });
-    res.json({ message: 'Pedido eliminado' });
+    res.json({ message: 'Pedido eliminado correctamente' });
   });
 });
 
-// --- REPORTES PARA ADMINISTRADOR ---
-
-app.get('/api/reports/summary', (req, res) => {
-  const query = `
-    SELECT 
-      b.name as business_name,
-      COUNT(o.id) as total_orders,
-      SUM(CASE WHEN o.status != 'Cancelado' THEN o.total ELSE 0 END) as total_revenue,
-      SUM(CASE WHEN o.status = 'Pendiente' THEN 1 ELSE 0 END) as pending_orders,
-      SUM(CASE WHEN o.status = 'Entregado' THEN 1 ELSE 0 END) as delivered_orders
-    FROM businesses b
-    LEFT JOIN orders o ON b.id = o.business_id
-    GROUP BY b.id
-  `;
-  db.all(query, [], (err, rows) => {
+// Ruta temporal para ver TODO el contenido de la tabla orders
+app.get('/api/debug-orders', (req, res) => {
+  db.all('SELECT id, business_id, customer_name FROM orders', [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-const PORT = 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en http://0.0.0.0:${PORT}`);
+  console.log(`Servidor activo en http://0.0.0.0:${PORT}`);
 });
