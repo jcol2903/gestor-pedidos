@@ -1,28 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useBusiness } from '../BusinessContext';
+import { useTheme } from '../ThemeContext'; // 1. Importamos useTheme
 import { OrdersCalendar } from './OrdersCalendar';
 
 export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
+  const { isDarkMode } = useTheme(); // 2. Consumimos el estado del tema
+
+  // Paleta dinámica basada en el estado de isDarkMode
+  const theme = {
+    bg: isDarkMode ? '#121212' : '#f8f9fa',
+    cardBg: isDarkMode ? '#1e1e1e' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#333333',
+    subtext: isDarkMode ? '#aaaaaa' : '#666666',
+    inputBg: isDarkMode ? '#2d2d2d' : '#ffffff',
+    border: isDarkMode ? '#333333' : '#cccccc',
+    priceBg: isDarkMode ? '#282828' : '#f1f3f5'
+  };
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
   const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'calendar'
-
-  // Modo Oscuro con persistencia
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme_mode') === 'dark';
-  });
-
-  const toggleDarkMode = () => {
-    setIsDarkMode((prev) => {
-      const newMode = !prev;
-      localStorage.setItem('theme_mode', newMode ? 'dark' : 'light');
-      return newMode;
-    });
-  };
 
   // Estados de Filtros
   const [filterStatus, setFilterStatus] = useState('Todos');
@@ -41,6 +42,7 @@ export const OrdersDashboard = ({ user }) => {
   const SERVER_URL = 'http://localhost:3000';
 
   const fetchOrders = () => {
+    if (!activeBusiness?.id) return;
     setLoading(true);
     fetch(`${SERVER_URL}/api/orders/${activeBusiness.id}`)
       .then((res) => res.json())
@@ -164,7 +166,7 @@ export const OrdersDashboard = ({ user }) => {
   const openWhatsApp = (order) => {
     const cleanPhone = (order.phone || '').replace(/\D/g, '');
     const balance = Number(order.total || 0) - Number(order.deposit || 0);
-    const message = `Hola ${order.customer_name}, te saludamos de *${activeBusiness.name}*.
+    const message = `Hola ${order.customer_name}, te saludamos de *${activeBusiness?.name || 'nuestro negocio'}*.
 Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*.
 *Total:* $${Number(order.total).toLocaleString()} | *Saldo Pendiente:* $${balance.toLocaleString()}.`;
 
@@ -180,31 +182,12 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
     return matchesStatus && matchesDate;
   });
 
-  // Estilos adaptables según el modo claro / oscuro
-  const theme = {
-    bg: isDarkMode ? '#121212' : '#f8f9fa',
-    cardBg: isDarkMode ? '#1e1e1e' : '#ffffff',
-    text: isDarkMode ? '#e0e0e0' : '#333333',
-    subtext: isDarkMode ? '#aaaaaa' : '#555555',
-    border: isDarkMode ? '#333333' : '#e0e0e0',
-    inputBg: isDarkMode ? '#2d2d2d' : '#ffffff',
-    priceBg: isDarkMode ? '#2a2a2a' : '#f8f9fa',
-  };
-
   return (
     <div style={{ padding: '2rem', backgroundColor: theme.bg, minHeight: '100vh', color: theme.text, transition: 'all 0.3s ease' }}>
       {/* Encabezado con Interruptor de Modo Oscuro y Vistas */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <h3>Pedidos de {activeBusiness.name}</h3>
+        <h3>Pedidos de {activeBusiness?.name || 'Cargando...'}</h3>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          {/* Botón Modo Oscuro / Claro */}
-          <button 
-            onClick={toggleDarkMode} 
-            style={{ ...styles.btnToggleTheme, backgroundColor: isDarkMode ? '#ffc107' : '#343a40', color: isDarkMode ? '#000' : '#fff' }}
-          >
-            {isDarkMode ? '☀️' : '🌙'}
-          </button>
-
           <button 
             onClick={() => setViewMode('cards')} 
             style={viewMode === 'cards' ? styles.btnPrimary : styles.btnSecondary}
@@ -264,7 +247,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                 const alert = getDeliveryAlert(o.delivery_date, o.status);
 
                 return (
-                  <div key={o.id} style={{ ...styles.card, backgroundColor: theme.cardBg, borderTop: `4px solid ${activeBusiness.themeColor || '#007bff'}`, boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.5)' : '0 2px 6px rgba(0,0,0,0.08)' }}>
+                  <div key={o.id} style={{ ...styles.card, backgroundColor: theme.cardBg, borderTop: `4px solid ${activeBusiness?.themeColor || '#007bff'}`, boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.5)' : '0 2px 6px rgba(0,0,0,0.08)' }}>
                     {alert && (
                       <div style={{ backgroundColor: alert.bg, color: alert.color, padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 'bold', marginBottom: '0.5rem', textAlign: 'center' }}>
                         {alert.text}
@@ -283,7 +266,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     <p style={{ color: theme.text }}><strong>Cliente:</strong> {o.customer_name}</p>
                     <p style={{ color: theme.text }}><strong>Contacto:</strong> {o.phone || 'N/A'}</p>
                     
-                    {activeBusiness.id === 1 ? (
+                    {activeBusiness?.id === 1 ? (
                       <>
                         <p style={{ color: theme.text }}><strong>Tipo:</strong> {o.order_type || 'Mini Torta'}</p>
                         {(o.flavor || o.filling) && (
@@ -335,7 +318,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
               <label>Contacto (Teléfono, Instagram, Correo):</label>
               <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
 
-              {activeBusiness.id === 1 ? (
+              {activeBusiness?.id === 1 ? (
                 <>
                   <label>Tipo de Pedido:</label>
                   <select value={formData.order_type} onChange={(e) => setFormData({ ...formData, order_type: e.target.value })} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}>
@@ -425,7 +408,6 @@ const styles = {
   priceContainer: { margin: '0.8rem 0', padding: '0.5rem', borderRadius: '6px', fontSize: '0.85rem' },
   emptyState: { padding: '2rem', borderRadius: '8px', textAlign: 'center' },
   input: { padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' },
-  btnToggleTheme: { border: 'none', padding: '0.5rem 1rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   btnPrimary: { backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   btnSecondary: { backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px', cursor: 'pointer' },
   btnWhatsApp: { backgroundColor: '#25D366', color: '#fff', border: 'none', padding: '0.5rem 0.8rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
