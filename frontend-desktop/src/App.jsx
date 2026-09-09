@@ -5,7 +5,7 @@ import { ThemeProvider, useTheme } from './ThemeContext';
 import { Navbar } from './components/Navbar';
 import { OrdersDashboard } from './components/OrdersDashboard';
 import { AdminReports } from './components/AdminReports';
-import { ThemeToggle } from './components/ThemeToggle'; // <--- Importante
+import { ThemeToggle } from './components/ThemeToggle';
 
 function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
   const { isDarkMode } = useTheme();
@@ -19,7 +19,6 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
-      {/* Barra superior de sesión */}
       <div
         style={{
           display: 'flex',
@@ -35,43 +34,39 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           <span>
             Usuario: <strong>{user.username}</strong> ({user.role})
           </span>
-          
-          {user.role === 'admin' && (
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setCurrentTab('orders')}
-                style={{
-                  color: currentTab === 'orders' ? '#3b82f6' : '#9ca3af',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentTab === 'orders' ? '2px solid #3b82f6' : '2px solid transparent',
-                  padding: '0.2rem 0',
-                  cursor: 'pointer',
-                  fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
-                }}
-              >
-                Gestión de Pedidos
-              </button>
-              <button
-                onClick={() => setCurrentTab('reports')}
-                style={{
-                  color: currentTab === 'reports' ? '#3b82f6' : '#9ca3af',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentTab === 'reports' ? '2px solid #3b82f6' : '2px solid transparent',
-                  padding: '0.2rem 0',
-                  cursor: 'pointer',
-                  fontWeight: currentTab === 'reports' ? 'bold' : 'normal',
-                }}
-              >
-                Reportes Financieros
-              </button>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <button
+              onClick={() => setCurrentTab('orders')}
+              style={{
+                color: currentTab === 'orders' ? '#3b82f6' : '#9ca3af',
+                background: 'none',
+                border: 'none',
+                borderBottom: currentTab === 'orders' ? '2px solid #3b82f6' : '2px solid transparent',
+                padding: '0.2rem 0',
+                cursor: 'pointer',
+                fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
+              }}
+            >
+              Gestión de Pedidos
+            </button>
+            <button
+              onClick={() => setCurrentTab('reports')}
+              style={{
+                color: currentTab === 'reports' ? '#3b82f6' : '#9ca3af',
+                background: 'none',
+                border: 'none',
+                borderBottom: currentTab === 'reports' ? '2px solid #3b82f6' : '2px solid transparent',
+                padding: '0.2rem 0',
+                cursor: 'pointer',
+                fontWeight: currentTab === 'reports' ? 'bold' : 'normal',
+              }}
+            >
+              Reportes Financieros
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          {/* Reemplazamos el botón anterior por nuestro interruptor animado */}
           <ThemeToggle />
 
           <button
@@ -91,8 +86,9 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
 
       <Navbar />
 
-      {currentTab === 'reports' && user.role === 'admin' ? (
-        <AdminReports />
+      {/* Se permite ver AdminReports tanto a 'admin' como a 'gestion' */}
+      {currentTab === 'reports' && (user.role === 'admin' || user.role === 'gestion') ? (
+        <AdminReports user={user} />
       ) : (
         <OrdersDashboard user={user} />
       )}

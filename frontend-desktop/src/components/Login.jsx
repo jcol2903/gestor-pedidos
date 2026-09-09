@@ -31,7 +31,10 @@ export const Login = ({ onLoginSuccess }) => {
   return (
     <div style={styles.container}>
       <form onSubmit={handleSubmit} style={styles.card}>
-        <h2>Gestor Kirala & Amigurumis</h2>
+        <h2
+          style={{
+            color: '#212529'
+          }}>Gestor Kirala & Amigurumis</h2>
         <p>Inicia sesión para continuar</p>
 
         {error && <div style={styles.error}>{error}</div>}
@@ -67,7 +70,7 @@ export const Login = ({ onLoginSuccess }) => {
 
 const styles = {
   container: { display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', backgroundColor: '#f4f6f8' },
-  card: { backgroundColor: '#fff', padding: '2.5rem', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '320px' },
+  card: { backgroundColor: '#fff', padding: '2.5rem', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', width: '320px', color: '#212529' },
   inputGroup: { marginBottom: '1.2rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' },
   input: { padding: '0.6rem', borderRadius: '6px', border: '1px solid #ccc', fontSize: '0.95rem' },
   button: { width: '100%', padding: '0.7rem', backgroundColor: '#e83e8c', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' },

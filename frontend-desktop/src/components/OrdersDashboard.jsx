@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import Swal from 'sweetalert2';
 import { useBusiness } from '../BusinessContext';
-import { useTheme } from '../ThemeContext'; // 1. Importamos useTheme
+import { useTheme } from '../ThemeContext';
 import { OrdersCalendar } from './OrdersCalendar';
 
 export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
-  const { isDarkMode } = useTheme(); // 2. Consumimos el estado del tema
+  const { isDarkMode } = useTheme();
 
   // Paleta dinámica basada en el estado de isDarkMode
   const theme = {
@@ -228,7 +228,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
 
             <label style={{ marginLeft: '1rem' }}>
               <strong>Fecha Entrega:</strong>
-              <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
+              <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
             </label>
 
             {(filterStatus !== 'Todos' || filterDate !== '') && (
@@ -286,7 +286,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                       <p style={{ margin: 0, color: theme.text }}><strong>Total:</strong> ${Number(o.total).toLocaleString()}</p>
                       <p style={{ margin: 0, color: '#17a2b8' }}><strong>Abono:</strong> ${Number(o.deposit || 0).toLocaleString()}</p>
                       <p style={{ margin: 0, color: balance > 0 ? '#dc3545' : '#28a745', fontWeight: 'bold' }}>
-                        {balance > 0 ? `Resta: $${balance.toLocaleString()}` : '✅ Pagado'}
+                        {balance > 0 ? `Pendiente: $${balance.toLocaleString()}` : '✅ Pagado'}
                       </p>
                     </div>
 
@@ -365,7 +365,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
               </div>
 
               <label>Fecha y Hora de Entrega:</label>
-              <input type="datetime-local" value={formData.delivery_date} onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })} required style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
+              <input type="datetime-local" value={formData.delivery_date} onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })} required style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
 
               <label>Estado:</label>
               <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}>

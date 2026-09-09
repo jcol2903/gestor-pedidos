@@ -18,8 +18,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend,
 export const AdminReports = () => {
   const { activeBusiness } = useBusiness();
   const { isDarkMode } = useTheme();
+  
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 1. ESTADOS QUE FALTABAN PARA EVITAR EL ERROR DE REFERENCE ERROR
+  const [selectedBusiness, setSelectedBusiness] = useState('Todos');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Paleta dinámica según el modo activo
   const theme = {
@@ -49,11 +55,29 @@ export const AdminReports = () => {
     return <p style={{ padding: '2rem', color: theme.text }}>Cargando métricas...</p>;
   }
 
-  const totalMoney = orders
+  // 2. FILTRADO CORRECTO DE PEDIDOS
+  const filteredOrders = orders.filter((o) => {
+    const matchesBusiness = selectedBusiness === 'Todos' || String(o.business_id) === String(selectedBusiness);
+    const orderDate = o.delivery_date ? o.delivery_date.split('T')[0] : '';
+    const matchesStart = !startDate || orderDate >= startDate;
+    const matchesEnd = !endDate || orderDate <= endDate;
+
+    return matchesBusiness && matchesStart && matchesEnd;
+  });
+
+  // 3. CÁLCULOS USANDO FILTEREDORDERS EN LUGAR DE ORDERS
+  const totalMoney = filteredOrders
     .filter((o) => o.status !== 'Cancelado')
     .reduce((acc, curr) => acc + Number(curr.total || 0), 0);
+  
+  const totalBalancePending = filteredOrders
+    .filter((o) => o.status !== 'Cancelado')
+    .reduce((acc, o) => {
+      const balance = Number(o.total || 0) - Number(o.deposit || 0);
+      return acc + (balance > 0 ? balance : 0);
+    }, 0);
 
-  const ordersByDate = orders.reduce((acc, order) => {
+  const ordersByDate = filteredOrders.reduce((acc, order) => {
     const date = order.delivery_date ? order.delivery_date.split('T')[0] : 'Sin Fecha';
     acc[date] = (acc[date] || 0) + 1;
     return acc;
@@ -65,7 +89,7 @@ export const AdminReports = () => {
     'Kit Para Decorar': 0,
   };
 
-  orders.forEach((o) => {
+  filteredOrders.forEach((o) => {
     if (o.order_type && orderTypesCount[o.order_type] !== undefined) {
       orderTypesCount[o.order_type] += 1;
     }
@@ -82,7 +106,6 @@ export const AdminReports = () => {
     ],
   };
 
-  // Configuración dinámica de ejes y colores para Chart.js
   const barChartOptions = {
     responsive: true,
     plugins: {
@@ -137,10 +160,18 @@ export const AdminReports = () => {
             ${totalMoney.toLocaleString()}
           </p>
         </div>
+
+        <div style={{ ...styles.metricCard, backgroundColor: theme.cardBg, boxShadow: theme.shadow }}>
+          <h4 style={{ color: theme.subtext, margin: 0 }}>Saldo Pendiente</h4>
+          <p style={{ fontSize: '2rem', color: '#dc3545', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>
+            ${totalBalancePending.toLocaleString()}
+          </p>
+        </div>
+
         <div style={{ ...styles.metricCard, backgroundColor: theme.cardBg, boxShadow: theme.shadow }}>
           <h4 style={{ color: theme.subtext, margin: 0 }}>Total Pedidos</h4>
           <p style={{ fontSize: '2rem', color: '#007bff', fontWeight: 'bold', margin: '0.5rem 0 0 0' }}>
-            {orders.length}
+            {filteredOrders.length}
           </p>
         </div>
       </div>
@@ -164,7 +195,7 @@ export const AdminReports = () => {
 };
 
 const styles = {
-  metricsContainer: { display: 'flex', gap: '2rem', marginBottom: '2rem' },
-  metricCard: { padding: '1.5rem', borderRadius: '8px', flex: 1, transition: 'all 0.3s ease' },
+  metricsContainer: { display: 'flex', gap: '2rem', marginBottom: '2rem', flexWrap: 'wrap' },
+  metricCard: { padding: '1.5rem', borderRadius: '8px', flex: 1, minWidth: '200px', transition: 'all 0.3s ease' },
   chartBox: { padding: '1.5rem', borderRadius: '8px', transition: 'all 0.3s ease' },
 };
