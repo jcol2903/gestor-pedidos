@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -12,6 +12,7 @@ import {
 import { Bar, Doughnut } from 'react-chartjs-2';
 import { useBusiness } from '../BusinessContext';
 import { useTheme } from '../ThemeContext';
+import { API_BASE_URL } from '../config';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
@@ -22,24 +23,25 @@ export const AdminReports = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. ESTADOS QUE FALTABAN PARA EVITAR EL ERROR DE REFERENCE ERROR
-  const [selectedBusiness, setSelectedBusiness] = useState('Todos');
+  // Estados para filtros
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Paleta dinámica según el modo activo
-  const theme = {
+  // Configuración de tema
+  const theme = useMemo(() => ({
     cardBg: isDarkMode ? '#1e1e1e' : '#ffffff',
     text: isDarkMode ? '#ffffff' : '#212529',
     subtext: isDarkMode ? '#aaaaaa' : '#555555',
     gridColor: isDarkMode ? '#333333' : '#e0e0e0',
     shadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.08)',
-  };
+    inputBg: isDarkMode ? '#2d2d2d' : '#f8f9fa',
+    inputBorder: isDarkMode ? '#444444' : '#ced4da',
+  }), [isDarkMode]);
 
   useEffect(() => {
     if (!activeBusiness?.id) return;
     setLoading(true);
-    fetch(`http://localhost:3000/api/orders/${activeBusiness.id}`)
+    fetch(`${API_BASE_URL}/api/orders/${activeBusiness.id}`)
       .then((res) => res.json())
       .then((data) => {
         setOrders(data);
@@ -51,50 +53,49 @@ export const AdminReports = () => {
       });
   }, [activeBusiness]);
 
-  if (loading) {
-    return <p style={{ padding: '2rem', color: theme.text }}>Cargando métricas...</p>;
-  }
+  // Filtrado de pedidos
+  const filteredOrders = useMemo(() => {
+    return orders.filter((o) => {
+      const orderDate = o.delivery_date ? o.delivery_date.split('T')[0] : '';
+      const matchesStart = !startDate || orderDate >= startDate;
+      const matchesEnd = !endDate || orderDate <= endDate;
+      return matchesStart && matchesEnd;
+    });
+  }, [orders, startDate, endDate]);
 
-  // 2. FILTRADO CORRECTO DE PEDIDOS
-  const filteredOrders = orders.filter((o) => {
-    const matchesBusiness = selectedBusiness === 'Todos' || String(o.business_id) === String(selectedBusiness);
-    const orderDate = o.delivery_date ? o.delivery_date.split('T')[0] : '';
-    const matchesStart = !startDate || orderDate >= startDate;
-    const matchesEnd = !endDate || orderDate <= endDate;
+  // Cálculos de métricas
+  const { totalMoney, totalBalancePending, ordersByDate, orderTypesCount } = useMemo(() => {
+    let money = 0;
+    let balancePending = 0;
+    const dates = {};
+    const types = {};
 
-    return matchesBusiness && matchesStart && matchesEnd;
-  });
+    filteredOrders.forEach((o) => {
+      if (o.status !== 'Cancelado') {
+        money += Number(o.total || 0);
+        const balance = Number(o.total || 0) - Number(o.deposit || 0);
+        if (balance > 0) balancePending += balance;
+      }
 
-  // 3. CÁLCULOS USANDO FILTEREDORDERS EN LUGAR DE ORDERS
-  const totalMoney = filteredOrders
-    .filter((o) => o.status !== 'Cancelado')
-    .reduce((acc, curr) => acc + Number(curr.total || 0), 0);
-  
-  const totalBalancePending = filteredOrders
-    .filter((o) => o.status !== 'Cancelado')
-    .reduce((acc, o) => {
-      const balance = Number(o.total || 0) - Number(o.deposit || 0);
-      return acc + (balance > 0 ? balance : 0);
-    }, 0);
+      // Conteo por fechas
+      const date = o.delivery_date ? o.delivery_date.split('T')[0] : 'Sin Fecha';
+      dates[date] = (dates[date] || 0) + 1;
 
-  const ordersByDate = filteredOrders.reduce((acc, order) => {
-    const date = order.delivery_date ? order.delivery_date.split('T')[0] : 'Sin Fecha';
-    acc[date] = (acc[date] || 0) + 1;
-    return acc;
-  }, {});
+      // Conteo dinámico por tipo de pedido
+      if (o.order_type) {
+        types[o.order_type] = (types[o.order_type] || 0) + 1;
+      }
+    });
 
-  const orderTypesCount = {
-    'Mini Torta': 0,
-    'Cajita Regalo': 0,
-    'Kit Para Decorar': 0,
-  };
+    return {
+      totalMoney: money,
+      totalBalancePending: balancePending,
+      ordersByDate: dates,
+      orderTypesCount: types,
+    };
+  }, [filteredOrders]);
 
-  filteredOrders.forEach((o) => {
-    if (o.order_type && orderTypesCount[o.order_type] !== undefined) {
-      orderTypesCount[o.order_type] += 1;
-    }
-  });
-
+  // Datos para gráfico de barras
   const barChartData = {
     labels: Object.keys(ordersByDate),
     datasets: [
@@ -118,23 +119,18 @@ export const AdminReports = () => {
       },
     },
     scales: {
-      x: {
-        ticks: { color: theme.subtext },
-        grid: { color: theme.gridColor },
-      },
-      y: {
-        ticks: { color: theme.subtext },
-        grid: { color: theme.gridColor },
-      },
+      x: { ticks: { color: theme.subtext }, grid: { color: theme.gridColor } },
+      y: { ticks: { color: theme.subtext }, grid: { color: theme.gridColor } },
     },
   };
 
+  // Datos para gráfico de dona (Dinámico)
   const doughnutData = {
     labels: Object.keys(orderTypesCount),
     datasets: [
       {
         data: Object.values(orderTypesCount),
-        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe'],
+        backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff'],
         borderColor: theme.cardBg,
       },
     ],
@@ -147,12 +143,47 @@ export const AdminReports = () => {
     },
   };
 
+  if (loading) {
+    return <p style={{ padding: '2rem', color: theme.text }}>Cargando métricas...</p>;
+  }
+
   return (
     <div style={{ padding: '2rem', color: theme.text, transition: 'all 0.3s ease' }}>
       <h2 style={{ color: theme.text, fontWeight: 'bold', fontSize: '1.5rem', marginBottom: '1.5rem' }}>
         📊 Reportes - {activeBusiness?.name || 'Mi Negocio'}
       </h2>
 
+      {/* Controles de filtro por fecha */}
+      <div style={{ ...styles.filterContainer, backgroundColor: theme.cardBg, boxShadow: theme.shadow }}>
+        <div style={styles.filterGroup}>
+          <label style={{ color: theme.subtext, fontSize: '0.9rem' }}>Desde:</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder }}
+          />
+        </div>
+        <div style={styles.filterGroup}>
+          <label style={{ color: theme.subtext, fontSize: '0.9rem' }}>Hasta:</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder }}
+          />
+        </div>
+        {(startDate || endDate) && (
+          <button
+            onClick={() => { setStartDate(''); setEndDate(''); }}
+            style={styles.clearBtn}
+          >
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {/* Tarjetas de Métricas */}
       <div style={styles.metricsContainer}>
         <div style={{ ...styles.metricCard, backgroundColor: theme.cardBg, boxShadow: theme.shadow }}>
           <h4 style={{ color: theme.subtext, margin: 0 }}>Ingresos Totales</h4>
@@ -176,12 +207,13 @@ export const AdminReports = () => {
         </div>
       </div>
 
+      {/* Gráficos */}
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
         <div style={{ ...styles.chartBox, backgroundColor: theme.cardBg, boxShadow: theme.shadow, flex: 2, minWidth: '300px' }}>
           <Bar data={barChartData} options={barChartOptions} />
         </div>
 
-        {activeBusiness?.id === 1 && (
+        {Object.keys(orderTypesCount).length > 0 && (
           <div style={{ ...styles.chartBox, backgroundColor: theme.cardBg, boxShadow: theme.shadow, flex: 1, minWidth: '280px' }}>
             <h4 style={{ textAlign: 'center', color: theme.text, marginBottom: '1rem' }}>
               Distribución por Tipo de Pedido
@@ -195,6 +227,10 @@ export const AdminReports = () => {
 };
 
 const styles = {
+  filterContainer: { display: 'flex', gap: '1rem', alignItems: 'center', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' },
+  filterGroup: { display: 'flex', flexDirection: 'column', gap: '0.25rem' },
+  input: { padding: '0.4rem 0.6rem', borderRadius: '4px', border: '1px solid', outline: 'none' },
+  clearBtn: { padding: '0.4rem 0.8rem', borderRadius: '4px', border: 'none', backgroundColor: '#6c757d', color: '#fff', cursor: 'pointer', alignSelf: 'flex-end' },
   metricsContainer: { display: 'flex', gap: '2rem', marginBottom: '2rem', flexWrap: 'wrap' },
   metricCard: { padding: '1.5rem', borderRadius: '8px', flex: 1, minWidth: '200px', transition: 'all 0.3s ease' },
   chartBox: { padding: '1.5rem', borderRadius: '8px', transition: 'all 0.3s ease' },

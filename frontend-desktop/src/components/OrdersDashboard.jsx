@@ -3,6 +3,7 @@ import Swal from 'sweetalert2';
 import { useBusiness } from '../BusinessContext';
 import { useTheme } from '../ThemeContext';
 import { OrdersCalendar } from './OrdersCalendar';
+import { API_BASE_URL } from '../config';
 
 export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
@@ -39,12 +40,10 @@ export const OrdersDashboard = ({ user }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
-  const SERVER_URL = 'http://localhost:3000';
-
   const fetchOrders = () => {
     if (!activeBusiness?.id) return;
     setLoading(true);
-    fetch(`${SERVER_URL}/api/orders/${activeBusiness.id}`)
+    fetch(`${API_BASE_URL}/api/orders/${activeBusiness.id}`)
       .then((res) => res.json())
       .then((data) => {
         setOrders(data);
@@ -77,7 +76,7 @@ export const OrdersDashboard = ({ user }) => {
         neighborhood: order.neighborhood || '',
         notes: order.notes || ''
       });
-      setImagePreview(order.image_url ? `${SERVER_URL}${order.image_url}` : null);
+      setImagePreview(order.image_url ? `${API_BASE_URL}${order.image_url}` : null);
     } else {
       setEditingOrder(null);
       setFormData({
@@ -102,7 +101,7 @@ export const OrdersDashboard = ({ user }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const url = editingOrder ? `${SERVER_URL}/api/orders/${editingOrder.id}` : `${SERVER_URL}/api/orders`;
+    const url = editingOrder ? `${API_BASE_URL}/api/orders/${editingOrder.id}` : `${API_BASE_URL}/api/orders`;
     const method = editingOrder ? 'PUT' : 'POST';
 
     const data = new FormData();
@@ -142,7 +141,7 @@ export const OrdersDashboard = ({ user }) => {
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
-        fetch(`${SERVER_URL}/api/orders/${id}`, { method: 'DELETE' })
+        fetch(`${API_BASE_URL}/api/orders/${id}`, { method: 'DELETE' })
           .then(() => {
             fetchOrders();
             Swal.fire('Eliminado', 'El pedido fue removido.', 'success');
@@ -209,7 +208,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
       </div>
 
       {viewMode === 'calendar' ? (
-        <OrdersCalendar SERVER_URL={SERVER_URL} isDarkMode={isDarkMode} />
+        <OrdersCalendar API_BASE_URL={API_BASE_URL} isDarkMode={isDarkMode} />
       ) : (
         <>
           {/* Barra de Filtros */}
@@ -255,7 +254,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     )}
 
                     {o.image_url && (
-                      <img src={`${SERVER_URL}${o.image_url}`} alt="Referencia" style={styles.cardImage} />
+                      <img src={`${API_BASE_URL}${o.image_url}`} alt="Referencia" style={styles.cardImage} />
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
