@@ -4,6 +4,7 @@ import { useBusiness } from '../BusinessContext';
 import { useTheme } from '../ThemeContext';
 import { OrdersCalendar } from './OrdersCalendar';
 import { API_BASE_URL } from '../config';
+import { badge } from './ColoresEstados';
 
 export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
@@ -259,7 +260,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <h4 style={{ margin: '0.5rem 0', color: theme.text }}>Pedido #{o.consecutive || o.id}</h4>
-                      <span style={styles.badge(o.status)}>{o.status}</span>
+                      <span style={badge(o.status)}>{o.status}</span>
                     </div>
 
                     <p style={{ color: theme.text }}><strong>Cliente:</strong> {o.customer_name}</p>
@@ -413,5 +414,5 @@ const styles = {
   btnDelete: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.5rem 0.8rem', borderRadius: '5px', cursor: 'pointer' },
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' },
-  badge: (status) => ({ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: status === 'Entregado' ? '#e6f4ea' : status === 'Cancelado' ? '#fce8e6' : '#e8f0fe', color: status === 'Entregado' ? '#137333' : status === 'Cancelado' ? '#c5221f' : '#1a73e8' })
+  //badge: (status) => ({ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: status === 'Entregado' ? '#e6f4ea' : status === 'Cancelado' ? '#fce8e6' : '#e8f0fe', color: status === 'Entregado' ? '#137333' : status === 'Cancelado' ? '#c5221f' : '#1a73e8' })
 };
