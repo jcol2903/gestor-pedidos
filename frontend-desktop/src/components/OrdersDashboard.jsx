@@ -404,7 +404,7 @@ const styles = {
   btnClear: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.5rem' },
   card: { padding: '1.2rem', borderRadius: '8px', transition: 'all 0.3s ease' },
-  cardImage: { width: '100%', height: '140px', objectFit: 'cover', borderRadius: '6px', marginBottom: '0.8rem' },
+  cardImage: { width: '100%', height: '240px', objectFit: 'cover', borderRadius: '6px', marginBottom: '0.8rem' },
   priceContainer: { margin: '0.8rem 0', padding: '0.5rem', borderRadius: '6px', fontSize: '0.85rem' },
   emptyState: { padding: '2rem', borderRadius: '8px', textAlign: 'center' },
   input: { padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' },

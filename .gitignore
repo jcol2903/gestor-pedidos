@@ -16,6 +16,10 @@
 **/*.db
 **/*.db-journal
 
+# Archivos multimedia / Cargas (Ignora imágenes subidas por usuarios)
+**/uploads/*
+!**/uploads/.gitkeep
+
 # Archivos del sistema y editor
 .DS_Store
 *.pem
