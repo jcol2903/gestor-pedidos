@@ -6,6 +6,27 @@ import { OrdersCalendar } from './OrdersCalendar';
 import { API_BASE_URL } from '../config';
 import { badge } from './ColoresEstados';
 
+const formatToDatetimeLocal = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return '';
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+// Helper universal para imágenes (Cloudinary http, archivo local blob o backend antiguo)
+const getImageSrc = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http') || url.startsWith('blob')) return url;
+  return `${API_BASE_URL}${url}`;
+};
+
 export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
   const { isDarkMode } = useTheme();
@@ -65,7 +86,7 @@ export const OrdersDashboard = ({ user }) => {
         phone: order.phone || '',
         total: order.total || '',
         deposit: order.deposit || 0,
-        delivery_date: order.delivery_date || '',
+        delivery_date: formatToDatetimeLocal(order.delivery_date),
         status: order.status || 'Pendiente',
         order_type: order.order_type || 'Mini Torta',
         flavor: order.flavor || '',
@@ -255,7 +276,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     )}
 
                     {o.image_url && (
-                      <img src={o.image_url?.startsWith('http') ? o.image_url : `${API_BASE_URL}${o.image_url}`} alt="Referencia" style={styles.cardImage} />
+                      <img src={getImageSrc(o.image_url)} alt="Referencia" style={styles.cardImage} />
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -382,7 +403,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
               <label>Foto de Referencia:</label>
               <input type="file" accept="image/*" onChange={handleImageChange} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
               {imagePreview && (
-                <img src={imagePreview?.startsWith('http') ? imagePreview : `${API_BASE_URL}${imagePreview}`} alt="Previsualización" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '6px', marginTop: '0.5rem' }} />
+                <img src={getImageSrc(imagePreview)} alt="Previsualización" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '6px', marginTop: '0.5rem' }} />
               )}
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
