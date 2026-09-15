@@ -382,7 +382,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
               <label>Foto de Referencia:</label>
               <input type="file" accept="image/*" onChange={handleImageChange} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
               {imagePreview && (
-                <img src={imagePreview} alt="Previsualización" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '6px', marginTop: '0.5rem' }} />
+                <img src={imagePreview?.startsWith('http') ? imagePreview : `${API_BASE_URL}${imagePreview}`} alt="Previsualización" style={{ width: '100%', maxHeight: '150px', objectFit: 'cover', borderRadius: '6px', marginTop: '0.5rem' }} />
               )}
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'flex-end' }}>
