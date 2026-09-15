@@ -1,35 +1,35 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const { Pool } = require('pg');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
+// ================= MIDDLEWARES ================= //
 app.use(cors());
 app.use(express.json());
 
-// Crear carpeta 'uploads' si no existe y servir estáticos
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-app.use('/uploads', express.static(uploadsDir));
+// ================= CONFIGURACIÓN CLOUDINARY ================= //
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-// Configuración de Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'gestor_pedidos_uploads',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp']
   }
 });
+
 const upload = multer({ storage });
 
-// Conexión a PostgreSQL / Supabase
+// ================= CONEXIÓN A POSTGRESQL / SUPABASE ================= //
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -37,7 +37,6 @@ const pool = new Pool({
   }
 });
 
-// Verificación de conexión
 pool.connect((err, client, release) => {
   if (err) {
     return console.error('❌ Error conectando a PostgreSQL/Supabase:', err.stack);
@@ -46,7 +45,7 @@ pool.connect((err, client, release) => {
   release();
 });
 
-// Auto-creación de tablas al iniciar el servidor (Sintaxis PostgreSQL)
+// ================= INICIALIZACIÓN DE TABLAS ================= //
 const initDB = async () => {
   try {
     await pool.query(`
@@ -115,7 +114,7 @@ app.get('/api/orders/:business_id', async (req, res) => {
   }
 });
 
-// POST: Crear un nuevo pedido (Soporta imagen adjunta)
+// POST: Crear un nuevo pedido (Imagen guardada en Cloudinary)
 app.post('/api/orders', upload.single('image'), async (req, res) => {
   const {
     business_id, customer_name, phone, total, deposit, delivery_date, status,
@@ -123,10 +122,10 @@ app.post('/api/orders', upload.single('image'), async (req, res) => {
     address, neighborhood, notes
   } = req.body;
 
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : null;
+  // Cloudinary retorna la URL HTTPS pública en req.file.path
+  const imageUrl = req.file ? req.file.path : null;
 
   try {
-    // Calcular consecutivo
     const maxResult = await pool.query(
       'SELECT MAX(consecutive) as max_consecutive FROM orders WHERE business_id = $1',
       [business_id]
@@ -152,7 +151,7 @@ app.post('/api/orders', upload.single('image'), async (req, res) => {
     res.json({
       id: newOrder.rows[0].id,
       consecutive: nextConsecutive,
-      message: 'Pedido registrado con éxito en Supabase'
+      message: 'Pedido registrado con éxito'
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -168,7 +167,8 @@ app.put('/api/orders/:id', upload.single('image'), async (req, res) => {
     address, neighborhood, notes, existing_image_url
   } = req.body;
 
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : existing_image_url || null;
+  // Si se sube un nuevo archivo usa req.file.path, si no conserva la URL actual
+  const imageUrl = req.file ? req.file.path : existing_image_url || null;
 
   const updateQuery = `
     UPDATE orders SET 
@@ -201,7 +201,7 @@ app.delete('/api/orders/:id', async (req, res) => {
   }
 });
 
-// Ruta de diagnóstico
+// GET: Ruta de diagnóstico
 app.get('/api/debug-orders', async (req, res) => {
   try {
     const result = await pool.query('SELECT id, business_id, customer_name FROM orders');
@@ -211,6 +211,7 @@ app.get('/api/debug-orders', async (req, res) => {
   }
 });
 
+// ================= INICIALIZACIÓN DEL SERVIDOR ================= //
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor activo en el puerto ${PORT}`);
 });
