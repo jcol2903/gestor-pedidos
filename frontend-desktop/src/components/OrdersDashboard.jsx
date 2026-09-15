@@ -255,7 +255,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     )}
 
                     {o.image_url && (
-                      <img src={`${API_BASE_URL}${o.image_url}`} alt="Referencia" style={styles.cardImage} />
+                      <img src={o.image_url?.startsWith('http') ? o.image_url : `${API_BASE_URL}${o.image_url}`} alt="Referencia" style={styles.cardImage} />
                     )}
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
