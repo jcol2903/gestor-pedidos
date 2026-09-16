@@ -98,7 +98,7 @@ export const OrdersDashboard = ({ user }) => {
         neighborhood: order.neighborhood || '',
         notes: order.notes || ''
       });
-      setImagePreview(order.image_url ? `${API_BASE_URL}${order.image_url}` : null);
+      setImagePreview(order.image_url || null);
     } else {
       setEditingOrder(null);
       setFormData({
@@ -314,9 +314,7 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.8rem' }}>
                       <button onClick={() => openWhatsApp(o)} style={styles.btnWhatsApp}>📲 WhatsApp</button>
                       <button onClick={() => handleOpenModal(o)} style={styles.btnSecondary}>Modificar</button>
-                      {user?.role === 'admin' && (
-                        <button onClick={() => handleDelete(o.id)} style={styles.btnDelete}>🗑️</button>
-                      )}
+                      <button onClick={() => handleDelete(o.id)} style={styles.btnDelete}>🗑️</button>
                     </div>
                   </div>
                 );
