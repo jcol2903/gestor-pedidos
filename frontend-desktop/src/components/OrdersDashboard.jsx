@@ -327,8 +327,8 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                       >
                         📦 Listo/Entrega
                       </button>
-                      <button onClick={() => handleOpenModal(o)} style={styles.btnSecondary}>✏️</button>
-                      <button onClick={() => handleDelete(o.id)} style={styles.btnDelete}>🗑️</button>
+                      <button onClick={() => handleOpenModal(o)} style={styles.btnActionSmall}>✏️</button>
+                      <button onClick={() => handleDelete(o.id)} style={styles.btnDeleteSmall}>🗑️</button>
                     </div>
                   </div>
                 );
