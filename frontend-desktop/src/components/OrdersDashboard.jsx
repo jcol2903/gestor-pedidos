@@ -312,23 +312,38 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                       </p>
                     </div>
 
-                    <div style={styles.actionsContainer}>
-                      <button 
-                        onClick={() => sendCreationMessage(o, activeBusiness)} 
-                        style={{ ...styles.btnWhatsApp, backgroundColor: '#25D366' }}
-                        title="Enviar confirmación de pedido creado"
-                      >
-                        📲 Confirmación
-                      </button>
-                      <button 
-                        onClick={() => sendReadyMessage(o)} 
-                        style={{ ...styles.btnWhatsApp, backgroundColor: '#128C7E' }}
-                        title="Avisar que el pedido está listo para entregar"
-                      >
-                        📦 Listo/Entrega
-                      </button>
-                      <button onClick={() => handleOpenModal(o)} style={styles.btnActionSmall}>✏️</button>
-                      <button onClick={() => handleDelete(o.id)} style={styles.btnDeleteSmall}>🗑️</button>
+                    <div style={styles.actionsWrapper}>
+                      <div style={styles.managementRow}>
+                        <button 
+                          onClick={() => handleOpenModal(o)} 
+                          style={styles.btnSecondaryFull}
+                        >
+                          ✏️
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(o.id)} 
+                          style={styles.btnDeleteFull}
+                          title="Eliminar pedido"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                      <div style={styles.whatsappRow}>
+                        <button 
+                          onClick={() => sendCreationMessage(o, activeBusiness)} 
+                          style={{ ...styles.btnWhatsApp, backgroundColor: '#25D366' }}
+                          title="Enviar confirmación de pedido creado"
+                        >
+                          📲 Confirmación
+                        </button>
+                        <button 
+                          onClick={() => sendReadyMessage(o)} 
+                          style={{ ...styles.btnWhatsApp, backgroundColor: '#128C7E' }}
+                          title="Avisar que el pedido está listo para entregar"
+                        >
+                          📦 Listo / Entrega
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -443,10 +458,12 @@ const styles = {
   input: { padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '100%', boxSizing: 'border-box' },
   btnPrimary: { backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   btnSecondary: { backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.5rem 1rem', borderRadius: '5px', cursor: 'pointer' },
-  actionsContainer: { display: 'flex', gap: '0.4rem', marginTop: '0.8rem', alignItems: 'center', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box'},
-  btnWhatsApp: { flex: 1, color: '#fff', border: 'none', padding: '0.5rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.75rem', textAlign: 'center', whiteSpace: 'nowrap'},
-  btnActionSmall: { backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.5rem', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem', minWidth: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center'},
-  btnDeleteSmall: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.5rem', borderRadius: '5px', cursor: 'pointer', fontSize: '0.85rem', minWidth: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center'},
+  actionsWrapper: { display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.8rem', width: '100%', boxSizing: 'border-box'},
+  whatsappRow: { display: 'flex', gap: '0.4rem', width: '100%'},
+  managementRow: { display: 'flex', gap: '0.4rem', width: '100%'},
+  btnWhatsApp: { flex: 1, color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center', whiteSpace: 'nowrap'},
+  btnSecondaryFull: { flex: 1, backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
+  btnDeleteFull: { flex: 1, backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' },
   //badge: (status) => ({ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: status === 'Entregado' ? '#e6f4ea' : status === 'Cancelado' ? '#fce8e6' : '#e8f0fe', color: status === 'Entregado' ? '#137333' : status === 'Cancelado' ? '#c5221f' : '#1a73e8' })
