@@ -5,6 +5,7 @@ import { useTheme } from '../ThemeContext';
 import { OrdersCalendar } from './OrdersCalendar';
 import { API_BASE_URL } from '../config';
 import { badge } from './ColoresEstados';
+import { getWhatsAppUrl, sendCreationMessage, sendReadyMessage } from './Helpers';
 
 const formatToDatetimeLocal = (isoString) => {
   if (!isoString) return '';
@@ -312,8 +313,21 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
                     </div>
 
                     <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.8rem' }}>
-                      <button onClick={() => openWhatsApp(o)} style={styles.btnWhatsApp}>📲 WhatsApp</button>
-                      <button onClick={() => handleOpenModal(o)} style={styles.btnSecondary}>Modificar</button>
+                      <button 
+                        onClick={() => sendCreationMessage(o, activeBusiness)} 
+                        style={{ ...styles.btnWhatsApp, backgroundColor: '#25D366' }}
+                        title="Enviar confirmación de pedido creado"
+                      >
+                        📲 Confirmación
+                      </button>
+                      <button 
+                        onClick={() => sendReadyMessage(o)} 
+                        style={{ ...styles.btnWhatsApp, backgroundColor: '#128C7E' }}
+                        title="Avisar que el pedido está listo para entregar"
+                      >
+                        📦 Listo/Entrega
+                      </button>
+                      <button onClick={() => handleOpenModal(o)} style={styles.btnSecondary}>✏️</button>
                       <button onClick={() => handleDelete(o.id)} style={styles.btnDelete}>🗑️</button>
                     </div>
                   </div>
