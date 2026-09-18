@@ -236,6 +236,89 @@ app.get('/api/debug-orders', async (req, res) => {
   }
 });
 
+// ================= RUTAS DE NEGOCIOS (BUSINESSES) ================= //
+
+// GET: Obtener todos los negocios
+app.get('/api/businesses', async (req, res) => {
+  try {
+    const { rows } = await pool.query('SELECT * FROM businesses ORDER BY id ASC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener negocios: ' + error.message });
+  }
+});
+
+// POST: Crear un nuevo negocio (con subida opcional de logo a Cloudinary)
+app.post('/api/businesses', upload.single('logo'), async (req, res) => {
+  const { name, owner_name, phone, location, social_media, theme_color } = req.body;
+  const logoUrl = req.file ? req.file.path : null;
+
+  try {
+    const query = `
+      INSERT INTO businesses (name, owner_name, phone, location, social_media, logo_url, theme_color)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *
+    `;
+    const values = [
+      name,
+      owner_name || null,
+      phone || null,
+      location || null,
+      social_media || null,
+      logoUrl,
+      theme_color || '#007bff'
+    ];
+
+    const { rows } = await pool.query(query, values);
+    res.json({ message: 'Negocio creado con éxito', business: rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al crear el negocio: ' + error.message });
+  }
+});
+
+// PUT: Actualizar un negocio existente
+app.put('/api/businesses/:id', upload.single('logo'), async (req, res) => {
+  const { id } = req.params;
+  const { name, owner_name, phone, location, social_media, theme_color, existing_logo_url } = req.body;
+  const logoUrl = req.file ? req.file.path : existing_logo_url || null;
+
+  try {
+    const query = `
+      UPDATE businesses SET 
+        name = $1, owner_name = $2, phone = $3, location = $4, 
+        social_media = $5, logo_url = $6, theme_color = $7
+      WHERE id = $8
+      RETURNING *
+    `;
+    const values = [
+      name,
+      owner_name || null,
+      phone || null,
+      location || null,
+      social_media || null,
+      logoUrl,
+      theme_color || '#007bff',
+      id
+    ];
+
+    const { rows } = await pool.query(query, values);
+    res.json({ message: 'Negocio actualizado correctamente', business: rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al actualizar el negocio: ' + error.message });
+  }
+});
+
+// DELETE: Eliminar un negocio (Elimina sus pedidos en cascada)
+app.delete('/api/businesses/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await pool.query('DELETE FROM businesses WHERE id = $1', [id]);
+    res.json({ message: 'Negocio eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ error: 'Error al eliminar el negocio: ' + error.message });
+  }
+});
+
 // ================= INICIALIZACIÓN DEL SERVIDOR ================= //
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor activo en el puerto ${PORT}`);

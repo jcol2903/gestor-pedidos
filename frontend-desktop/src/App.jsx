@@ -5,10 +5,12 @@ import { ThemeProvider, useTheme } from './ThemeContext';
 import { Navbar } from './components/Navbar';
 import { OrdersDashboard } from './components/OrdersDashboard';
 import { AdminReports } from './components/AdminReports';
+import { BusinessManagement } from './components/BusinessManagement';
 import { ThemeToggle } from './components/ThemeToggle';
 
 function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
   const { isDarkMode } = useTheme();
+  const [adminTab, setAdminTab] = useState('businesses'); // 'businesses' | 'orders'
 
   return (
     <div
@@ -21,12 +23,12 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
-      {/* Contenido Principal con flex: 1 para empujar el footer hacia abajo */}
       <main style={{ flex: 1 }}>
+        {/* Cabecera Superior */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justify: 'space-between',
             alignItems: 'center',
             padding: '0.6rem 2rem',
             background: isDarkMode ? '#1a1a1a' : '#212529',
@@ -51,7 +53,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
                   fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
                 }}
               >
-                Gestión de Pedidos
+                Gestión General
               </button>
               <button
                 onClick={() => setCurrentTab('reports')}
@@ -88,16 +90,54 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           </div>
         </div>
 
-        <Navbar />
+        {/* Pestañas secundarias para el Usuario Admin */}
+        {user?.role === 'admin' && currentTab === 'orders' && (
+          <div style={{ padding: '1rem 2rem 0 2rem', display: 'flex', gap: '0.5rem' }}>
+            <button 
+              onClick={() => setAdminTab('businesses')} 
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: adminTab === 'businesses' ? '#0d6efd' : (isDarkMode ? '#2d2d2d' : '#e9ecef'),
+                color: adminTab === 'businesses' ? '#fff' : (isDarkMode ? '#aaa' : '#333')
+              }}
+            >
+              🏢 Administración de Negocios
+            </button>
+            <button 
+              onClick={() => setAdminTab('orders')} 
+              style={{
+                padding: '0.4rem 0.8rem',
+                borderRadius: '5px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                backgroundColor: adminTab === 'orders' ? '#0d6efd' : (isDarkMode ? '#2d2d2d' : '#e9ecef'),
+                color: adminTab === 'orders' ? '#fff' : (isDarkMode ? '#aaa' : '#333')
+              }}
+            >
+              📦 Pedidos por Negocio
+            </button>
+          </div>
+        )}
 
-        {currentTab === 'reports' && (user.role === 'admin' || user.role === 'gestion') ? (
+        {/* Navbar selector de negocio (solo si estamos en la vista de pedidos/reportes) */}
+        {adminTab === 'orders' || currentTab === 'reports' ? <Navbar /> : null}
+
+        {/* Renderizado Condicional del Contenido */}
+        {currentTab === 'reports' ? (
           <AdminReports user={user} />
+        ) : user?.role === 'admin' ? (
+          adminTab === 'businesses' ? <BusinessManagement /> : <OrdersDashboard user={user} />
         ) : (
           <OrdersDashboard user={user} />
         )}
       </main>
 
-      {/* Pie de página dentro del contenedor flex principal */}
+      {/* Pie de página */}
       <footer
         style={{
           padding: '1rem 2rem',
