@@ -23,8 +23,9 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
+      {/* Contenido Principal con flex: 1 para empujar el footer hacia abajo */}
       <main style={{ flex: 1 }}>
-        {/* Cabecera Superior */}
+        {/* Barra Superior de Usuario y Navegación Principal */}
         <div
           style={{
             display: 'flex',
@@ -53,7 +54,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
                   fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
                 }}
               >
-                Gestión General
+                Gestión de Pedidos
               </button>
               <button
                 onClick={() => setCurrentTab('reports')}
@@ -90,17 +91,18 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           </div>
         </div>
 
-        {/* Pestañas secundarias para el Usuario Admin */}
+        {/* Subpestañas para Administrador cuando está en la vista de Pedidos */}
         {user?.role === 'admin' && currentTab === 'orders' && (
           <div style={{ padding: '1rem 2rem 0 2rem', display: 'flex', gap: '0.5rem' }}>
             <button 
               onClick={() => setAdminTab('businesses')} 
               style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '5px',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '6px',
                 border: 'none',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                fontSize: '0.85rem',
                 backgroundColor: adminTab === 'businesses' ? '#0d6efd' : (isDarkMode ? '#2d2d2d' : '#e9ecef'),
                 color: adminTab === 'businesses' ? '#fff' : (isDarkMode ? '#aaa' : '#333')
               }}
@@ -110,11 +112,12 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
             <button 
               onClick={() => setAdminTab('orders')} 
               style={{
-                padding: '0.4rem 0.8rem',
-                borderRadius: '5px',
+                padding: '0.45rem 0.9rem',
+                borderRadius: '6px',
                 border: 'none',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                fontSize: '0.85rem',
                 backgroundColor: adminTab === 'orders' ? '#0d6efd' : (isDarkMode ? '#2d2d2d' : '#e9ecef'),
                 color: adminTab === 'orders' ? '#fff' : (isDarkMode ? '#aaa' : '#333')
               }}
@@ -124,10 +127,12 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           </div>
         )}
 
-        {/* Navbar selector de negocio (solo si estamos en la vista de pedidos/reportes) */}
-        {adminTab === 'orders' || currentTab === 'reports' ? <Navbar /> : null}
+        {/* Navbar de selección de negocio (Se oculta en la vista de gestión de negocios) */}
+        {(currentTab === 'reports' || (user?.role === 'admin' && adminTab === 'orders') || user?.role !== 'admin') && (
+          <Navbar />
+        )}
 
-        {/* Renderizado Condicional del Contenido */}
+        {/* Contenido Dinámico de la Vista */}
         {currentTab === 'reports' ? (
           <AdminReports user={user} />
         ) : user?.role === 'admin' ? (
@@ -137,7 +142,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         )}
       </main>
 
-      {/* Pie de página */}
+      {/* Pie de página dentro del contenedor flex principal */}
       <footer
         style={{
           padding: '1rem 2rem',

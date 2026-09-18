@@ -1,94 +1,104 @@
 import React from 'react';
 import { useBusiness } from '../BusinessContext';
 import { useTheme } from '../ThemeContext';
+import { API_BASE_URL } from '../config';
+
+const getImageSrc = (url) => {
+  if (!url) return null;
+  if (url.startsWith('http') || url.startsWith('blob')) return url;
+  return `${API_BASE_URL}${url}`;
+};
 
 export const Navbar = () => {
-  const { activeBusiness, switchBusiness, BUSINESSES } = useBusiness();
-  const { isDarkMode, toggleDarkMode } = useTheme();
+  const { activeBusiness, businesses, setActiveBusiness } = useBusiness();
+  const { isDarkMode } = useTheme();
 
-  // Estilos adaptables según el modo claro / oscuro
   const theme = {
-    bg: isDarkMode ? '#1e1e1e' : '#ffffff',
-    text: isDarkMode ? '#ffffff' : '#212529',
-    subtext: isDarkMode ? '#aaaaaa' : '#555555',
-    border: isDarkMode ? '#333333' : '#cccccc',
-    inputBg: isDarkMode ? '#2d2d2d' : '#ffffff',
+    bg: isDarkMode ? '#1a1a1a' : '#ffffff',
+    text: isDarkMode ? '#ffffff' : '#333333',
+    border: isDarkMode ? '#333333' : '#e5e7eb',
+    selectBg: isDarkMode ? '#2d2d2d' : '#f8f9fa'
   };
 
   return (
-    <header
+    <div
       style={{
-        ...styles.header,
+        display: 'flex',
+        justify: 'space-between',
+        alignItems: 'center',
+        padding: '0.8rem 2rem',
         backgroundColor: theme.bg,
-        borderBottom: `4px solid ${activeBusiness?.themeColor || '#007bff'}`,
-        boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)',
+        color: theme.text,
+        borderBottom: `3px solid ${activeBusiness?.themeColor || '#007bff'}`,
+        transition: 'all 0.3s ease'
       }}
     >
-      <div style={styles.brand}>
-        <span style={styles.icon}>{activeBusiness?.icon}</span>
-        <h2
-          style={{
-            margin: 0,
-            color: theme.text,
-            fontWeight: 'bold',
-            fontSize: '1.5rem',
-          }}
-        >
-          {activeBusiness?.name || 'Mi Negocio'}
-        </h2>
+      {/* Sección Izquierda: Logo + Nombre del Negocio */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+        {activeBusiness?.logo_url ? (
+          <img
+            src={getImageSrc(activeBusiness.logo_url)}
+            alt={activeBusiness.name}
+            style={{
+              width: '35px',
+              height: '35px',
+              borderRadius: '50%',
+              objectFit: 'cover',
+              border: `2px solid ${activeBusiness?.themeColor || '#007bff'}`
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: '35px',
+              height: '35px',
+              borderRadius: '50%',
+              backgroundColor: activeBusiness?.themeColor || '#007bff',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: '1rem'
+            }}
+          >
+            {activeBusiness?.name ? activeBusiness.name.charAt(0) : '🏢'}
+          </div>
+        )}
+        <h3 style={{ margin: 0, fontSize: '1.2rem', color: theme.text }}>
+          {activeBusiness?.name || 'Cargando...'}
+        </h3>
       </div>
 
-      <div style={styles.profileSelector}>
-        <span style={{ ...styles.label, color: theme.subtext }}>Perfil Activo:</span>
+      {/* Sección Derecha: Selector de Perfil Activo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <span style={{ fontSize: '0.9rem', color: isDarkMode ? '#aaa' : '#666' }}>
+          Perfil Activo:
+        </span>
         <select
-          value={activeBusiness?.id}
-          onChange={(e) => switchBusiness(Number(e.target.value))}
+          value={activeBusiness?.id || ''}
+          onChange={(e) => {
+            const selected = businesses.find((b) => b.id === Number(e.target.value));
+            if (selected) setActiveBusiness(selected);
+          }}
           style={{
-            ...styles.select,
-            backgroundColor: theme.inputBg,
+            padding: '0.4rem 0.8rem',
+            borderRadius: '6px',
+            backgroundColor: theme.selectBg,
             color: theme.text,
-            borderColor: theme.border,
+            border: `1px solid ${theme.border}`,
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '0.9rem'
           }}
         >
-          {BUSINESSES?.map((b) => (
+          {businesses.map((b) => (
             <option key={b.id} value={b.id}>
-              {b.icon} {b.name}
+              {b.name}
             </option>
           ))}
         </select>
       </div>
-    </header>
+    </div>
   );
-};
-
-const styles = {
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '1rem 2rem',
-    transition: 'all 0.3s ease',
-  },
-  btnToggleTheme: {
-    border: 'none',
-    padding: '0.4rem 0.8rem',
-    borderRadius: '20px',
-    cursor: 'pointer',
-    fontWeight: 'bold',
-    fontSize: '0.85rem',
-    marginLeft: '0.5rem',
-    transition: 'all 0.3s ease',
-  },
-  brand: { display: 'flex', alignItems: 'center', gap: '0.8rem' },
-  icon: { fontSize: '1.8rem' },
-  profileSelector: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
-  label: { fontWeight: '500' },
-  select: {
-    padding: '0.5rem 1rem',
-    borderRadius: '8px',
-    fontSize: '0.95rem',
-    cursor: 'pointer',
-    outline: 'none',
-    transition: 'all 0.3s ease',
-  },
 };

@@ -187,8 +187,8 @@ export const BusinessManagement = () => {
               <p><strong>📱 Redes:</strong> {b.social_media || 'N/A'}</p>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button onClick={() => handleOpenModal(b)} style={styles.btnSecondary}>✏️ Editar</button>
-                <button onClick={() => handleDelete(b.id)} style={styles.btnDelete}>🗑️ Eliminar</button>
+                <button onClick={() => handleOpenModal(b)} style={styles.btnSecondary}>✏️</button>
+                <button onClick={() => handleDelete(b.id)} style={styles.btnDelete}>🗑️</button>
               </div>
             </div>
           ))}
