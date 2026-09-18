@@ -92,7 +92,7 @@ export const Navbar = () => {
             fontSize: '0.9rem'
           }}
         >
-          {businesses.map((b) => (
+          {(businesses || []).map((b) => (
             <option key={b.id} value={b.id}>
               {b.name}
             </option>

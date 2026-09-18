@@ -70,10 +70,13 @@ export const OrdersDashboard = ({ user }) => {
     fetch(`${API_BASE_URL}/api/orders/${activeBusiness.id}`)
       .then((res) => res.json())
       .then((data) => {
-        setOrders(data);
-        setLoading(false);
+      setOrders(Array.isArray(data) ? data : []);
+      setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+      setOrders([]);
+      setLoading(false);
+    });
   };
 
   useEffect(() => {
@@ -83,8 +86,11 @@ export const OrdersDashboard = ({ user }) => {
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/statuses`)
       .then((res) => res.json())
-      .then((data) => setStatuses(data))
-      .catch((err) => console.error('Error cargando estados:', err));
+      .then((data) => setStatuses(Array.isArray(data) ? data : []))
+      .catch((err) => {
+        console.error('Error cargando estados:', err);
+        setStatuses([]);
+      });
   }, []);
 
   const handleStatusChange = (statusName) => {
@@ -256,7 +262,7 @@ export const OrdersDashboard = ({ user }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
                 <strong style={{ fontSize: '0.85rem' }}>Estados:</strong>
                 <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                  {statuses.map((st) => {
+                  {(statuses || []).map((st) => {
                     const isChecked = selectedStatuses.includes(st.name);
                     return (
                       <label key={st.id} style={{ ...styles.checkboxInline, backgroundColor: isChecked ? '#0d6efd' : theme.inputBg, color: isChecked ? '#fff' : theme.text, borderColor: isChecked ? '#0d6efd' : theme.border }}>
@@ -287,7 +293,7 @@ export const OrdersDashboard = ({ user }) => {
             <div style={{ ...styles.emptyState, backgroundColor: theme.cardBg, color: theme.subtext }}>No se encontraron pedidos.</div>
           ) : (
             <div style={styles.grid}>
-              {filteredOrders.map((o) => {
+              {(filteredOrders || []).map((o) => {
                 const balance = Number(o.total || 0) - Number(o.deposit || 0);
                 const alert = getDeliveryAlert(o.delivery_date, o.status);
 
@@ -443,7 +449,7 @@ export const OrdersDashboard = ({ user }) => {
                 onChange={(e) => setFormData({ ...formData, status_id: Number(e.target.value) })} 
                 style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
               >
-                {statuses.map((st) => (
+                {(statuses || []).map((st) => (
                   <option key={st.id} value={st.id}>
                     {st.name}
                   </option>

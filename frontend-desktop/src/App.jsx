@@ -23,57 +23,65 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         transition: 'background-color 0.3s ease, color 0.3s ease',
       }}
     >
-      {/* Contenido Principal con flex: 1 para empujar el footer hacia abajo */}
       <main style={{ flex: 1 }}>
-        {/* Barra Superior de Usuario y Navegación Principal */}
+        {/* Cabecera Superior con Grid de 3 Columnas Separadas */}
         <div
           style={{
-            display: 'flex',
-            justify: 'space-between',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
             alignItems: 'center',
-            padding: '0.6rem 2rem',
+            padding: '0.8rem 2rem',
             background: isDarkMode ? '#1a1a1a' : '#212529',
             color: '#fff',
             borderBottom: isDarkMode ? '1px solid #333' : 'none',
+            gap: '1rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          {/* Columna 1: Usuario */}
+          <div style={{ justifySelf: 'start', whiteSpace: 'nowrap' }}>
             <span>
               Usuario: <strong>{user.username}</strong>
             </span>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <button
-                onClick={() => setCurrentTab('orders')}
-                style={{
-                  color: currentTab === 'orders' ? '#3b82f6' : '#9ca3af',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentTab === 'orders' ? '2px solid #3b82f6' : '2px solid transparent',
-                  padding: '0.2rem 0',
-                  cursor: 'pointer',
-                  fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
-                }}
-              >
-                Gestión de Pedidos
-              </button>
-              <button
-                onClick={() => setCurrentTab('reports')}
-                style={{
-                  color: currentTab === 'reports' ? '#3b82f6' : '#9ca3af',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: currentTab === 'reports' ? '2px solid #3b82f6' : '2px solid transparent',
-                  padding: '0.2rem 0',
-                  cursor: 'pointer',
-                  fontWeight: currentTab === 'reports' ? 'bold' : 'normal',
-                }}
-              >
-                Reportes Financieros
-              </button>
-            </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {/* Columna 2: Pestañas Principales Centradas */}
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', justifySelf: 'center' }}>
+            <button
+              onClick={() => setCurrentTab('orders')}
+              style={{
+                color: currentTab === 'orders' ? '#3b82f6' : '#9ca3af',
+                background: 'none',
+                border: 'none',
+                borderBottom: currentTab === 'orders' ? '2px solid #3b82f6' : '2px solid transparent',
+                padding: '0.3rem 0',
+                cursor: 'pointer',
+                fontWeight: currentTab === 'orders' ? 'bold' : 'normal',
+                whiteSpace: 'nowrap',
+                fontSize: '0.95rem'
+              }}
+            >
+              Gestión de Pedidos
+            </button>
+            <button
+              onClick={() => setCurrentTab('reports')}
+              style={{
+                color: currentTab === 'reports' ? '#3b82f6' : '#9ca3af',
+                background: 'none',
+                border: 'none',
+                borderBottom: currentTab === 'reports' ? '2px solid #3b82f6' : '2px solid transparent',
+                padding: '0.3rem 0',
+                cursor: 'pointer',
+                fontWeight: currentTab === 'reports' ? 'bold' : 'normal',
+                whiteSpace: 'nowrap',
+                fontSize: '0.95rem'
+              }}
+            >
+              Reportes Financieros
+            </button>
+          </div>
+
+          {/* Columna 3: Controles a la Derecha (Switch y Logout) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem', justifySelf: 'end' }}>
             <ThemeToggle />
 
             <button
@@ -84,6 +92,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
                 border: 'none',
                 cursor: 'pointer',
                 fontWeight: 'bold',
+                whiteSpace: 'nowrap'
               }}
             >
               Cerrar Sesión
@@ -91,9 +100,9 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           </div>
         </div>
 
-        {/* Subpestañas para Administrador cuando está en la vista de Pedidos */}
+        {/* Subpestañas para Administrador cuando está en Gestión de Pedidos */}
         {user?.role === 'admin' && currentTab === 'orders' && (
-          <div style={{ padding: '1rem 2rem 0 2rem', display: 'flex', gap: '0.5rem' }}>
+          <div style={{ padding: '1rem 2rem 0 2rem', display: 'flex', gap: '0.6rem' }}>
             <button 
               onClick={() => setAdminTab('businesses')} 
               style={{
@@ -109,6 +118,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
             >
               🏢 Administración de Negocios
             </button>
+
             <button 
               onClick={() => setAdminTab('orders')} 
               style={{
@@ -127,12 +137,12 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
           </div>
         )}
 
-        {/* Navbar de selección de negocio (Se oculta en la vista de gestión de negocios) */}
+        {/* Navbar de Selección de Negocios (Se oculta dinámicamente en la Administración de Negocios) */}
         {(currentTab === 'reports' || (user?.role === 'admin' && adminTab === 'orders') || user?.role !== 'admin') && (
           <Navbar />
         )}
 
-        {/* Contenido Dinámico de la Vista */}
+        {/* Contenido Dinámico */}
         {currentTab === 'reports' ? (
           <AdminReports user={user} />
         ) : user?.role === 'admin' ? (
@@ -142,7 +152,7 @@ function MainLayout({ user, currentTab, setCurrentTab, handleLogout }) {
         )}
       </main>
 
-      {/* Pie de página dentro del contenedor flex principal */}
+      {/* Pie de Página */}
       <footer
         style={{
           padding: '1rem 2rem',
