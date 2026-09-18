@@ -58,7 +58,7 @@ const initDB = async () => {
         total NUMERIC(10, 2),
         deposit NUMERIC(10, 2) DEFAULT 0,
         delivery_date TIMESTAMP,
-        status VARCHAR(50) DEFAULT 'Pendiente',
+        status_id INT DEFAULT 1,
         order_type VARCHAR(50),
         flavor VARCHAR(100),
         filling VARCHAR(100),
@@ -100,29 +100,42 @@ app.post('/api/login', (req, res) => {
   return res.status(401).json({ error: 'Usuario o contraseña incorrectos' });
 });
 
-// GET: Obtener pedidos por Negocio
-app.get('/api/orders/:business_id', async (req, res) => {
-  const { business_id } = req.params;
+// GET: Obtener lista de estados
+app.get('/api/statuses', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT * FROM orders WHERE business_id = $1 ORDER BY delivery_date ASC',
-      [business_id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const { rows } = await pool.query('SELECT * FROM order_statuses ORDER BY id ASC');
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: 'Error al obtener estados' });
   }
 });
 
-// POST: Crear un nuevo pedido (Imagen guardada en Cloudinary)
+// GET: Obtener pedidos por Negocio con INNER JOIN de estados
+app.get('/api/orders/:businessId', async (req, res) => {
+  const { businessId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.*, s.name AS status 
+       FROM orders o 
+       JOIN order_statuses s ON o.status_id = s.id 
+       WHERE o.business_id = $1 
+       ORDER BY o.id DESC`,
+      [businessId]
+    );
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST: Crear un nuevo pedido
 app.post('/api/orders', upload.single('image'), async (req, res) => {
   const {
-    business_id, customer_name, phone, total, deposit, delivery_date, status,
+    business_id, customer_name, phone, total, deposit, delivery_date, status_id,
     order_type, flavor, filling, topper_text, height_cm, delivery_type,
     address, neighborhood, notes
   } = req.body;
 
-  // Cloudinary retorna la URL HTTPS pública en req.file.path
   const imageUrl = req.file ? req.file.path : null;
 
   try {
@@ -131,10 +144,13 @@ app.post('/api/orders', upload.single('image'), async (req, res) => {
       [business_id]
     );
     const nextConsecutive = (maxResult.rows[0].max_consecutive || 0) + 1;
-
+    
+    const finalStatusId = status_id ? Number(status_id) : 1;
+    const finalHeight = height_cm ? Number(height_cm) : null;
+    
     const insertQuery = `
       INSERT INTO orders (
-        business_id, consecutive, customer_name, phone, total, deposit, delivery_date, status,
+        business_id, consecutive, customer_name, phone, total, deposit, delivery_date, status_id,
         order_type, flavor, filling, topper_text, height_cm, delivery_type, address, neighborhood, notes, image_url
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
       RETURNING id
@@ -142,8 +158,8 @@ app.post('/api/orders', upload.single('image'), async (req, res) => {
 
     const values = [
       business_id, nextConsecutive, customer_name, phone, total || 0, deposit || 0,
-      delivery_date || null, status || 'Pendiente', order_type || null, flavor || null,
-      filling || null, topper_text || null, height_cm || null, delivery_type || 'Recogida',
+      delivery_date || null, finalStatusId, order_type || null, flavor || null,
+      filling || null, topper_text || null, finalHeight, delivery_type || 'Recogida',
       address || null, neighborhood || null, notes || null, imageUrl
     ];
 
@@ -162,17 +178,18 @@ app.post('/api/orders', upload.single('image'), async (req, res) => {
 app.put('/api/orders/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
   const {
-    customer_name, phone, total, deposit, delivery_date, status,
+    customer_name, phone, total, deposit, delivery_date, status_id,
     order_type, flavor, filling, topper_text, height_cm, delivery_type,
     address, neighborhood, notes, existing_image_url
   } = req.body;
 
-  // Si se sube un nuevo archivo usa req.file.path, si no conserva la URL actual
   const imageUrl = req.file ? req.file.path : existing_image_url || null;
+  const finalStatusId = status_id ? Number(status_id) : 1;
+  const finalHeight = height_cm ? Number(height_cm) : null;
 
   const updateQuery = `
     UPDATE orders SET 
-      customer_name = $1, phone = $2, total = $3, deposit = $4, delivery_date = $5, status = $6,
+      customer_name = $1, phone = $2, total = $3, deposit = $4, delivery_date = $5, status_id = $6,
       order_type = $7, flavor = $8, filling = $9, topper_text = $10, height_cm = $11, delivery_type = $12,
       address = $13, neighborhood = $14, notes = $15, image_url = $16
     WHERE id = $17
@@ -180,8 +197,8 @@ app.put('/api/orders/:id', upload.single('image'), async (req, res) => {
 
   try {
     await pool.query(updateQuery, [
-      customer_name, phone, total || 0, deposit || 0, delivery_date || null, status,
-      order_type || null, flavor || null, filling || null, topper_text || null, height_cm || null,
+      customer_name, phone, total || 0, deposit || 0, delivery_date || null, finalStatusId,
+      order_type || null, flavor || null, filling || null, topper_text || null, finalHeight,
       delivery_type || 'Recogida', address || null, neighborhood || null, notes || null, imageUrl, id
     ]);
     res.json({ message: 'Pedido actualizado correctamente' });

@@ -21,7 +21,6 @@ const formatToDatetimeLocal = (isoString) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
-// Helper universal para imágenes (Cloudinary http, archivo local blob o backend antiguo)
 const getImageSrc = (url) => {
   if (!url) return null;
   if (url.startsWith('http') || url.startsWith('blob')) return url;
@@ -32,7 +31,6 @@ export const OrdersDashboard = ({ user }) => {
   const { activeBusiness } = useBusiness();
   const { isDarkMode } = useTheme();
 
-  // Paleta dinámica basada en el estado de isDarkMode
   const theme = {
     bg: isDarkMode ? '#121212' : '#f8f9fa',
     cardBg: isDarkMode ? '#1e1e1e' : '#ffffff',
@@ -44,22 +42,25 @@ export const OrdersDashboard = ({ user }) => {
   };
 
   const [orders, setOrders] = useState([]);
+  const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingOrder, setEditingOrder] = useState(null);
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' | 'calendar'
+  const [viewMode, setViewMode] = useState('cards');
 
-  // Estados de Filtros
-  const [filterStatus, setFilterStatus] = useState('Todos');
-  const [filterDate, setFilterDate] = useState('');
+  // Estados de Filtros Renovados
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Formulario
   const [formData, setFormData] = useState({
     customer_name: '', phone: '', total: '', deposit: '', delivery_date: '',
-    status: 'Pendiente', order_type: 'Mini Torta', flavor: '', filling: '',
+    status_id: 1, order_type: 'Mini Torta', flavor: '', filling: '',
     topper_text: '', height_cm: '', delivery_type: 'Recogida', address: '',
     neighborhood: '', notes: ''
   });
+
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
 
@@ -79,6 +80,27 @@ export const OrdersDashboard = ({ user }) => {
     fetchOrders();
   }, [activeBusiness]);
 
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/statuses`)
+      .then((res) => res.json())
+      .then((data) => setStatuses(data))
+      .catch((err) => console.error('Error cargando estados:', err));
+  }, []);
+
+  const handleStatusChange = (statusName) => {
+    if (selectedStatuses.includes(statusName)) {
+      setSelectedStatuses(selectedStatuses.filter((s) => s !== statusName));
+    } else {
+      setSelectedStatuses([...selectedStatuses, statusName]);
+    }
+  };
+
+  const resetFilters = () => {
+    setSelectedStatuses([]);
+    setStartDate('');
+    setEndDate('');
+  };
+
   const handleOpenModal = (order = null) => {
     if (order) {
       setEditingOrder(order);
@@ -88,7 +110,7 @@ export const OrdersDashboard = ({ user }) => {
         total: order.total || '',
         deposit: order.deposit || 0,
         delivery_date: formatToDatetimeLocal(order.delivery_date),
-        status: order.status || 'Pendiente',
+        status_id: order.status_id || 1,
         order_type: order.order_type || 'Mini Torta',
         flavor: order.flavor || '',
         filling: order.filling || '',
@@ -104,7 +126,7 @@ export const OrdersDashboard = ({ user }) => {
       setEditingOrder(null);
       setFormData({
         customer_name: '', phone: '', total: '', deposit: '', delivery_date: '',
-        status: 'Pendiente', order_type: 'Mini Torta', flavor: '', filling: '',
+        status_id: 1, order_type: 'Mini Torta', flavor: '', filling: '',
         topper_text: '', height_cm: '', delivery_type: 'Recogida', address: '',
         neighborhood: '', notes: ''
       });
@@ -185,28 +207,21 @@ export const OrdersDashboard = ({ user }) => {
     return null;
   };
 
-  const openWhatsApp = (order) => {
-    const cleanPhone = (order.phone || '').replace(/\D/g, '');
-    const balance = Number(order.total || 0) - Number(order.deposit || 0);
-    const message = `Hola ${order.customer_name}, te saludamos de *${activeBusiness?.name || 'nuestro negocio'}*.
-Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*.
-*Total:* $${Number(order.total).toLocaleString()} | *Saldo Pendiente:* $${balance.toLocaleString()}.`;
-
-    const url = cleanPhone 
-      ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank');
-  };
-
   const filteredOrders = orders.filter((o) => {
-    const matchesStatus = filterStatus === 'Todos' || o.status === filterStatus;
-    const matchesDate = !filterDate || (o.delivery_date && o.delivery_date.startsWith(filterDate));
-    return matchesStatus && matchesDate;
+    const matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(o.status);
+    if (!matchesStatus) return false;
+
+    if (!o.delivery_date) return !startDate && !endDate;
+
+    const orderDateStr = o.delivery_date.split('T')[0];
+    const matchesStart = !startDate || orderDateStr >= startDate;
+    const matchesEnd = !endDate || orderDateStr <= endDate;
+
+    return matchesStart && matchesEnd;
   });
 
   return (
     <div style={{ padding: '2rem', backgroundColor: theme.bg, minHeight: '100vh', color: theme.text, transition: 'all 0.3s ease' }}>
-      {/* Encabezado con Interruptor de Modo Oscuro y Vistas */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h3>Pedidos de {activeBusiness?.name || 'Cargando...'}</h3>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -234,27 +249,66 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
         <OrdersCalendar API_BASE_URL={API_BASE_URL} isDarkMode={isDarkMode} />
       ) : (
         <>
-          {/* Barra de Filtros */}
-          <div style={{ ...styles.filterBar, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-            <label>
-              <strong>Estado:</strong>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ ...styles.select, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}>
-                <option value="Todos">Todos</option>
-                <option value="Pendiente">Pendiente</option>
-                <option value="En proceso">En proceso</option>
-                <option value="Listo para entregar">Listo para entregar</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Cancelado">Cancelado</option>
-              </select>
-            </label>
+          {/* Barra de Filtros Renovada */}
+          <div style={{ ...styles.filterBarContainer, backgroundColor: theme.cardBg, borderColor: theme.border }}>
+            <div style={styles.filterSection}>
+              <strong style={{ marginBottom: '0.4rem', display: 'block' }}>Estados:</strong>
+              <div style={styles.checkboxGroup}>
+                {statuses.map((st) => {
+                  const isChecked = selectedStatuses.includes(st.name);
+                  return (
+                    <label 
+                      key={st.id} 
+                      style={{ 
+                        ...styles.checkboxLabel, 
+                        backgroundColor: isChecked ? (isDarkMode ? '#333' : '#e9ecef') : 'transparent',
+                        borderColor: isChecked ? '#0d6efd' : theme.border 
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => handleStatusChange(st.name)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span>{st.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
 
-            <label style={{ marginLeft: '1rem' }}>
-              <strong>Fecha Entrega:</strong>
-              <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
-            </label>
+            <div style={styles.filterSection}>
+              <strong style={{ marginBottom: '0.4rem', display: 'block' }}>Rango de Entrega:</strong>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <label style={{ fontSize: '0.85rem' }}>
+                  Desde:
+                  <input 
+                    type="date" 
+                    value={startDate} 
+                    onChange={(e) => setStartDate(e.target.value)} 
+                    style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} 
+                  />
+                </label>
 
-            {(filterStatus !== 'Todos' || filterDate !== '') && (
-              <button onClick={() => { setFilterStatus('Todos'); setFilterDate(''); }} style={styles.btnClear}>Limpiar</button>
+                <label style={{ fontSize: '0.85rem' }}>
+                  Hasta:
+                  <input 
+                    type="date" 
+                    value={endDate} 
+                    onChange={(e) => setEndDate(e.target.value)} 
+                    style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} 
+                  />
+                </label>
+              </div>
+            </div>
+
+            {(selectedStatuses.length > 0 || startDate !== '' || endDate !== '') && (
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button onClick={resetFilters} style={styles.btnClear}>
+                  Limpiar Filtros
+                </button>
+              </div>
             )}
           </div>
 
@@ -353,7 +407,6 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
         </>
       )}
 
-      {/* Modal Completo Adaptable */}
       {showModal && (
         <div style={styles.modalOverlay}>
           <div style={{ ...styles.modalContent, backgroundColor: theme.cardBg, color: theme.text, maxHeight: '90vh', overflowY: 'auto' }}>
@@ -416,12 +469,16 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
               <input type="datetime-local" value={formData.delivery_date} onChange={(e) => setFormData({ ...formData, delivery_date: e.target.value })} required style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
 
               <label>Estado:</label>
-              <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value })} style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}>
-                <option value="Pendiente">Pendiente</option>
-                <option value="En proceso">En proceso</option>
-                <option value="Listo para entregar">Listo para entregar</option>
-                <option value="Entregado">Entregado</option>
-                <option value="Cancelado">Cancelado</option>
+              <select 
+                value={formData.status_id} 
+                onChange={(e) => setFormData({ ...formData, status_id: Number(e.target.value) })} 
+                style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+              >
+                {statuses.map((st) => (
+                  <option key={st.id} value={st.id}>
+                    {st.name}
+                  </option>
+                ))}
               </select>
 
               <label>Notas Internas / Alérgenos:</label>
@@ -446,10 +503,12 @@ Tu pedido *#${order.consecutive || order.id}* está en estado: *${order.status}*
 };
 
 const styles = {
-  filterBar: { display: 'flex', gap: '1rem', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', alignItems: 'center', border: '1px solid transparent' },
-  select: { padding: '0.4rem', borderRadius: '4px', marginLeft: '0.5rem' },
-  inputFilter: { padding: '0.4rem', borderRadius: '4px', marginLeft: '0.5rem' },
-  btnClear: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.4rem 0.8rem', borderRadius: '4px', cursor: 'pointer' },
+  filterBarContainer: { display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.2rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid transparent' },
+  filterSection: { display: 'flex', flexDirection: 'column' },
+  checkboxGroup: { display: 'flex', flexWrap: 'wrap', gap: '0.5rem' },
+  checkboxLabel: { display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.6rem', borderRadius: '6px', border: '1px solid', cursor: 'pointer', fontSize: '0.85rem', userSelect: 'none', transition: 'all 0.2s ease' },
+  inputFilter: { padding: '0.35rem 0.5rem', borderRadius: '4px', border: '1px solid #ccc', marginLeft: '0.4rem' },
+  btnClear: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.45rem 0.9rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem' },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '1.5rem' },
   card: { padding: '1.2rem', borderRadius: '8px', transition: 'all 0.3s ease' },
   cardImage: { width: '100%', height: '240px', objectFit: 'cover', borderRadius: '6px', marginBottom: '0.8rem' },
@@ -465,6 +524,5 @@ const styles = {
   btnSecondaryFull: { flex: 1, backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
   btnDeleteFull: { flex: 1, backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' },
-  //badge: (status) => ({ padding: '0.2rem 0.6rem', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', backgroundColor: status === 'Entregado' ? '#e6f4ea' : status === 'Cancelado' ? '#fce8e6' : '#e8f0fe', color: status === 'Entregado' ? '#137333' : status === 'Cancelado' ? '#c5221f' : '#1a73e8' })
+  modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' }
 };
