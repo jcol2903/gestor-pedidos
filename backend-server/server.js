@@ -1,12 +1,16 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+types.setTypeParser(1114, function(stringValue) {
+  return stringValue; // Retorna la fecha exacta sin restar las 5 horas
+});
 
 // ================= MIDDLEWARES ================= //
 app.use(cors());
@@ -41,8 +45,12 @@ pool.connect((err, client, release) => {
   if (err) {
     return console.error('❌ Error conectando a PostgreSQL/Supabase:', err.stack);
   }
-  console.log('✅ Conectado exitosamente a la base de datos en Supabase');
-  release();
+  // Forzar zona horaria de Colombia en PostgreSQL
+  client.query("SET timezone = 'America/Bogota';", (tzErr) => {
+    if (tzErr) console.error('Error estableciendo timezone:', tzErr);
+    else console.log('✅ Conectado exitosamente a la base de datos en Supabase (Zona Horaria: America/Bogota)');
+    release();
+  });
 });
 
 // ================= INICIALIZACIÓN DE TABLAS ================= //
