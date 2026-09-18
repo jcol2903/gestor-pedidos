@@ -249,67 +249,36 @@ export const OrdersDashboard = ({ user }) => {
         <OrdersCalendar API_BASE_URL={API_BASE_URL} isDarkMode={isDarkMode} />
       ) : (
         <>
-          {/* Barra de Filtros Renovada */}
-          <div style={{ ...styles.filterBarContainer, backgroundColor: theme.cardBg, borderColor: theme.border }}>
-            <div style={styles.filterSection}>
-              <strong style={{ marginBottom: '0.4rem', display: 'block' }}>Estados:</strong>
-              <div style={styles.checkboxGroup}>
-                {statuses.map((st) => {
-                  const isChecked = selectedStatuses.includes(st.name);
-                  return (
-                    <label 
-                      key={st.id} 
-                      style={{ 
-                        ...styles.checkboxLabel, 
-                        backgroundColor: isChecked ? (isDarkMode ? '#333' : '#e9ecef') : 'transparent',
-                        borderColor: isChecked ? '#0d6efd' : theme.border 
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleStatusChange(st.name)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <span>{st.name}</span>
-                    </label>
-                  );
-                })}
+          {/* Opción 2: Barra Ultra Compacta */}
+          <div style={{ ...styles.filterBarContainer, padding: '0.7rem 1.2rem', backgroundColor: theme.cardBg, borderColor: theme.border }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', flexWrap: 'wrap' }}>
+                <strong style={{ fontSize: '0.85rem' }}>Estados:</strong>
+                <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                  {statuses.map((st) => {
+                    const isChecked = selectedStatuses.includes(st.name);
+                    return (
+                      <label key={st.id} style={{ ...styles.checkboxInline, backgroundColor: isChecked ? '#0d6efd' : theme.inputBg, color: isChecked ? '#fff' : theme.text, borderColor: isChecked ? '#0d6efd' : theme.border }}>
+                        <input type="checkbox" checked={isChecked} onChange={() => handleStatusChange(st.name)} style={{ display: 'none' }} />
+                        {st.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <strong style={{ fontSize: '0.85rem' }}>Entrega:</strong>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
+                <span>-</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} />
+                
+                {(selectedStatuses.length > 0 || startDate || endDate) && (
+                  <button onClick={resetFilters} style={styles.btnClearCompact}>✕</button>
+                )}
               </div>
             </div>
-
-            <div style={styles.filterSection}>
-              <strong style={{ marginBottom: '0.4rem', display: 'block' }}>Rango de Entrega:</strong>
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <label style={{ fontSize: '0.85rem' }}>
-                  Desde:
-                  <input 
-                    type="date" 
-                    value={startDate} 
-                    onChange={(e) => setStartDate(e.target.value)} 
-                    style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} 
-                  />
-                </label>
-
-                <label style={{ fontSize: '0.85rem' }}>
-                  Hasta:
-                  <input 
-                    type="date" 
-                    value={endDate} 
-                    onChange={(e) => setEndDate(e.target.value)} 
-                    style={{ ...styles.inputFilter, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border, colorScheme: isDarkMode ? 'dark' : 'light' }} 
-                  />
-                </label>
-              </div>
-            </div>
-
-            {(selectedStatuses.length > 0 || startDate !== '' || endDate !== '') && (
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <button onClick={resetFilters} style={styles.btnClear}>
-                  Limpiar Filtros
-                </button>
-              </div>
-            )}
           </div>
 
           {loading ? (
@@ -524,5 +493,7 @@ const styles = {
   btnSecondaryFull: { flex: 1, backgroundColor: '#6c757d', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
   btnDeleteFull: { flex: 1, backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.45rem 0.2rem', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.78rem', textAlign: 'center'},
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-  modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' }
+  modalContent: { padding: '2rem', borderRadius: '8px', width: '440px' },
+  checkboxInline: { display: 'inline-flex', alignItems: 'center', padding: '0.3rem 0.65rem', borderRadius: '6px', border: '1px solid', fontSize: '0.8rem', cursor: 'pointer', userSelect: 'none', transition: 'all 0.2s ease'},
+  btnClearCompact: { backgroundColor: '#dc3545', color: '#fff', border: 'none', padding: '0.35rem 0.65rem', borderRadius: '5px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', justifyContent: 'center'}
 };
