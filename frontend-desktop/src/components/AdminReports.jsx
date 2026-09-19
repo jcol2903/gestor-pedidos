@@ -23,11 +23,11 @@ export const AdminReports = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Estados para filtros
+  // Estados para filtros por fecha
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Configuración de tema
+  // Configuración de tema dinámico
   const theme = useMemo(() => ({
     cardBg: isDarkMode ? '#1e1e1e' : '#ffffff',
     text: isDarkMode ? '#ffffff' : '#212529',
@@ -44,16 +44,17 @@ export const AdminReports = () => {
     fetch(`${API_BASE_URL}/api/orders/${activeBusiness.id}`)
       .then((res) => res.json())
       .then((data) => {
-        setOrders(data);
+        setOrders(Array.isArray(data) ? data : []);
         setLoading(false);
       })
       .catch((err) => {
         console.error('Error al obtener pedidos:', err);
+        setOrders([]);
         setLoading(false);
       });
   }, [activeBusiness]);
 
-  // Filtrado de pedidos
+  // Filtrado por Rango de Fechas
   const filteredOrders = useMemo(() => {
     return orders.filter((o) => {
       const orderDate = o.delivery_date ? o.delivery_date.split('T')[0] : '';
@@ -63,12 +64,15 @@ export const AdminReports = () => {
     });
   }, [orders, startDate, endDate]);
 
+  // Evaluamos el tipo de negocio activo (id 1 = Tortas, id !== 1 = Amigurumis)
+  const isTortas = activeBusiness?.id === 1;
+
   // Cálculos de métricas
-  const { totalMoney, totalBalancePending, ordersByDate, orderTypesCount } = useMemo(() => {
+  const { totalMoney, totalBalancePending, ordersByDate, categoryCounts } = useMemo(() => {
     let money = 0;
     let balancePending = 0;
     const dates = {};
-    const types = {};
+    const categories = {};
 
     filteredOrders.forEach((o) => {
       if (o.status !== 'Cancelado') {
@@ -77,13 +81,18 @@ export const AdminReports = () => {
         if (balance > 0) balancePending += balance;
       }
 
-      // Conteo por fechas
+      // Conteo por fechas de entrega
       const date = o.delivery_date ? o.delivery_date.split('T')[0] : 'Sin Fecha';
       dates[date] = (dates[date] || 0) + 1;
 
-      // Conteo dinámico por tipo de pedido
-      if (o.order_type) {
-        types[o.order_type] = (types[o.order_type] || 0) + 1;
+      // Conteo dinámico: Tipo de Pedido (Tortas) o Altura (Amigurumis)
+      if (isTortas) {
+        const type = o.order_type || 'Mini Torta';
+        categories[type] = (categories[type] || 0) + 1;
+      } else {
+        const height = o.height_cm ? Math.round(Number(o.height_cm)) : null;
+        const key = height ? `${height} cm` : 'Sin Especificar';
+        categories[key] = (categories[key] || 0) + 1;
       }
     });
 
@@ -91,11 +100,11 @@ export const AdminReports = () => {
       totalMoney: money,
       totalBalancePending: balancePending,
       ordersByDate: dates,
-      orderTypesCount: types,
+      categoryCounts: categories,
     };
-  }, [filteredOrders]);
+  }, [filteredOrders, isTortas]);
 
-  // Datos para gráfico de barras
+  // Datos para gráfico de barras (Pedidos por fecha)
   const barChartData = {
     labels: Object.keys(ordersByDate),
     datasets: [
@@ -124,12 +133,12 @@ export const AdminReports = () => {
     },
   };
 
-  // Datos para gráfico de dona (Dinámico)
+  // Datos para gráfico de dona (Dinámico según negocio)
   const doughnutData = {
-    labels: Object.keys(orderTypesCount),
+    labels: Object.keys(categoryCounts),
     datasets: [
       {
-        data: Object.values(orderTypesCount),
+        data: Object.values(categoryCounts),
         backgroundColor: ['#ff6384', '#36a2eb', '#cc65fe', '#ffce56', '#4bc0c0', '#9966ff'],
         borderColor: theme.cardBg,
       },
@@ -161,7 +170,7 @@ export const AdminReports = () => {
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder }}
+            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder, colorScheme: isDarkMode ? 'dark' : 'light' }}
           />
         </div>
         <div style={styles.filterGroup}>
@@ -170,7 +179,7 @@ export const AdminReports = () => {
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder }}
+            style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.inputBorder, colorScheme: isDarkMode ? 'dark' : 'light' }}
           />
         </div>
         {(startDate || endDate) && (
@@ -213,10 +222,10 @@ export const AdminReports = () => {
           <Bar data={barChartData} options={barChartOptions} />
         </div>
 
-        {Object.keys(orderTypesCount).length > 0 && (
+        {Object.keys(categoryCounts).length > 0 && (
           <div style={{ ...styles.chartBox, backgroundColor: theme.cardBg, boxShadow: theme.shadow, flex: 1, minWidth: '280px' }}>
             <h4 style={{ textAlign: 'center', color: theme.text, marginBottom: '1rem' }}>
-              Distribución por Tipo de Pedido
+              {isTortas ? 'Distribución por Tipo de Pedido' : 'Distribución por Altura de Amigurumi'}
             </h4>
             <Doughnut data={doughnutData} options={doughnutOptions} />
           </div>
