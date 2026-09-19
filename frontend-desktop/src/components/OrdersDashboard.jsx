@@ -205,10 +205,16 @@ export const OrdersDashboard = ({ user }) => {
     if (!dateStr || status === 'Entregado' || status === 'Cancelado') return null;
     const now = new Date();
     const delivery = new Date(dateStr);
-    const diffDays = Math.ceil((delivery - now) / (1000 * 60 * 60 * 24));
+    // Normalizar ambas fechas a medianoche (00:00:00) para comparar solo días del calendario
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const deliveryStart = new Date(delivery.getFullYear(), delivery.getMonth(), delivery.getDate());
+    // Diferencia exacta en días
+    const diffTime = deliveryStart - todayStart;
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) return { text: '⚠️ Vencido', bg: '#f8d7da', color: '#721c24' };
     if (diffDays === 0) return { text: '🚨 ¡Entrega HOY!', bg: '#f8d7da', color: '#721c24' };
+    if (diffDays === 1) return { text: '⏳ Falta 1 día', bg: '#fff3cd', color: '#856404' };
     if (diffDays <= 5) return { text: `⏳ Faltan ${diffDays} días`, bg: '#fff3cd', color: '#856404' };
     return null;
   };
