@@ -121,7 +121,7 @@ export const OrdersDashboard = ({ user }) => {
         flavor: order.flavor || '',
         filling: order.filling || '',
         topper_text: order.topper_text || '',
-        height_cm: order.height_cm || '',
+        height_cm: order.height_cm ? Math.round(Number(order.height_cm)).toString() : '15', // Convierte ej. 7.00 a "7"
         delivery_type: order.delivery_type || 'Recogida',
         address: order.address || '',
         neighborhood: order.neighborhood || '',
@@ -133,7 +133,7 @@ export const OrdersDashboard = ({ user }) => {
       setFormData({
         customer_name: '', phone: '', total: '', deposit: '', delivery_date: '',
         status_id: 1, order_type: 'Mini Torta', flavor: '', filling: '',
-        topper_text: '', height_cm: '', delivery_type: 'Recogida', address: '',
+        topper_text: '', height_cm: '15', delivery_type: 'Recogida', address: '',
         neighborhood: '', notes: ''
       });
       setImagePreview(null);
@@ -412,7 +412,15 @@ export const OrdersDashboard = ({ user }) => {
               ) : (
                 <>
                   <label>Altura del Amigurumi (cm):</label>
-                  <input type="number" value={formData.height_cm} onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })} placeholder="Ej. 20" style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }} />
+                  <select 
+                    value={formData.height_cm} 
+                    onChange={(e) => setFormData({ ...formData, height_cm: e.target.value })} 
+                    style={{ ...styles.input, backgroundColor: theme.inputBg, color: theme.text, borderColor: theme.border }}
+                  >
+                    <option value="7">7 cm</option>
+                    <option value="15">15 cm</option>
+                    <option value="20">20 cm</option>
+                  </select>
                 </>
               )}
 
