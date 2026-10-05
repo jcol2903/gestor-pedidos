@@ -10,14 +10,11 @@ const getImageSrc = (url) => {
 };
 
 export const Navbar = () => {
-  // Cambiamos BUSINESSES por businesses dinámico
   const { activeBusiness, switchBusiness, businesses, loading } = useBusiness();
   const { isDarkMode } = useTheme();
 
-  // Color distintivo del negocio (Soporta theme_color de la BD o themeColor de reserva)
   const businessColor = activeBusiness?.theme_color || activeBusiness?.themeColor || '#007bff';
 
-  // Estilos adaptables según el modo claro / oscuro
   const theme = {
     bg: isDarkMode ? '#1e1e1e' : '#ffffff',
     text: isDarkMode ? '#ffffff' : '#212529',
@@ -35,18 +32,19 @@ export const Navbar = () => {
         boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.05)',
       }}
     >
+      {/* LADO IZQUIERDO: Logo / Círculo e Imagen con Nombre */}
       <div style={styles.brand}>
-        {/* Renderizado de Logo si existe, o Inicial del nombre como respaldo */}
         {activeBusiness?.logo_url ? (
           <img
             src={getImageSrc(activeBusiness.logo_url)}
             alt={activeBusiness.name}
             style={{
-              width: '38px',
-              height: '38px',
+              width: '40px',
+              height: '40px',
               borderRadius: '50%',
               objectFit: 'cover',
               border: `2px solid ${businessColor}`,
+              flexShrink: 0
             }}
           />
         ) : (
@@ -65,13 +63,15 @@ export const Navbar = () => {
             margin: 0,
             color: theme.text,
             fontWeight: 'bold',
-            fontSize: '1.5rem',
+            fontSize: '1.4rem',
+            whiteSpace: 'nowrap'
           }}
         >
-          {activeBusiness?.name || (loading ? 'Cargando...' : 'Sin Negocio')}
+          {activeBusiness?.name || (loading ? 'Cargando...' : 'Mi Negocio')}
         </h2>
       </div>
 
+      {/* LADO DERECHO: Selector de Perfil con Perfil Activo */}
       <div style={styles.profileSelector}>
         <span style={{ ...styles.label, color: theme.subtext }}>Perfil Activo:</span>
         <select
@@ -100,13 +100,21 @@ const styles = {
     display: 'flex',
     justify: 'space-between',
     alignItems: 'center',
-    padding: '1rem 2rem',
+    padding: '0.8rem 2rem',
+    gap: '1.5rem',
+    width: '100%',
+    boxSizing: 'border-box',
     transition: 'all 0.3s ease',
   },
-  brand: { display: 'flex', alignItems: 'center', gap: '0.8rem' },
+  brand: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '1rem',
+    minWidth: 'fit-content'
+  },
   avatarPlaceholder: {
-    width: '38px',
-    height: '38px',
+    width: '40px',
+    height: '40px',
     borderRadius: '50%',
     color: '#ffffff',
     display: 'flex',
@@ -114,15 +122,26 @@ const styles = {
     justifyContent: 'center',
     fontWeight: 'bold',
     fontSize: '1.1rem',
+    flexShrink: 0
   },
-  profileSelector: { display: 'flex', alignItems: 'center', gap: '0.5rem' },
-  label: { fontWeight: '500' },
+  profileSelector: { 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '0.8rem',
+    marginLeft: 'auto'
+  },
+  label: { 
+    fontWeight: '500',
+    whiteSpace: 'nowrap',
+    fontSize: '0.95rem'
+  },
   select: {
     padding: '0.5rem 1rem',
     borderRadius: '8px',
     fontSize: '0.95rem',
     cursor: 'pointer',
     outline: 'none',
+    fontWeight: 'bold',
     transition: 'all 0.3s ease',
   },
 };
